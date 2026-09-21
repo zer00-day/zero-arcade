@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3">
+    <title>Zero Arcade — Snake</title>
+    <link rel="stylesheet" href="snake.css">
+</head>
+<body>
+    <main class="arcade-page">
+        <header class="arcade-header">
+            <a class="back-link" href="../index.html">
+                <span class="back-arrow">↙</span>
+                <span>ARCADE</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <span class="status">03 / 05</span>
+        </header>
+
+        <section class="game-card" aria-label="Snake">
+            <div class="game-top">
+                <span class="game-category">MINI GAME 03</span>
+                <span class="game-type">SNAKE</span>
+            </div>
+
+            <div class="game-content">
+                <div class="game-heading">
+                    <span class="game-number">03</span>
+                    <div>
+                        <h1>Snake</h1>
+                        <p>Eat, grow, and beat your best score.</p>
+                    </div>
+                </div>
+
+                <div class="game-board" id="gameBoard" aria-label="Snake game board"></div>
+
+                <div class="snake-controls" aria-label="Snake controls">
+                    <button class="control-button control-up" type="button" data-direction="up" aria-label="Move up">↑</button>
+                    <button class="control-button control-left" type="button" data-direction="left" aria-label="Move left">←</button>
+                    <button class="control-button control-down" type="button" data-direction="down" aria-label="Move down">↓</button>
+                    <button class="control-button control-right" type="button" data-direction="right" aria-label="Move right">→</button>
+                </div>
+
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span>SCORE</span>
+                        <strong id="score">0</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>BEST</span>
+                        <strong id="bestScore">0</strong>
+                    </div>
+                </div>
+
+                <button class="restart-button" id="restartButton" type="button">
+                    NEW GAME
+                </button>
+            </div>
+        </section>
+
+        <footer class="arcade-footer">
+            <span>ZERO ARCADE</span>
+            <span>SNAKE</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="snake.js"></script>
+</body>
+</html>

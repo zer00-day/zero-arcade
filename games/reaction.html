@@ -1,0 +1,73 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3">
+    <title>Zero Arcade — Reaction Test</title>
+    <link rel="stylesheet" href="reaction.css">
+</head>
+<body>
+    <main class="arcade-page">
+        <header class="arcade-header">
+            <a class="back-link" href="../index.html">
+                <span class="back-arrow">↙</span>
+                <span>ARCADE</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <span class="status">01 / 05</span>
+        </header>
+
+        <section class="game-card" aria-label="Reaction Test">
+            <div class="game-top">
+                <span class="game-category">MINI GAME 01</span>
+                <span class="game-type">REACTION TEST</span>
+            </div>
+
+            <div class="game-content">
+                <div class="game-heading">
+                    <span class="game-number">01</span>
+                    <div>
+                        <h1>Reaction Test</h1>
+                        <p>Test how fast you can react.</p>
+                    </div>
+                </div>
+
+                <button 
+                    class="game-area" 
+                    id="gameArea" 
+                    type="button" 
+                    aria-label="Start Reaction Test"
+                >
+                    <span class="game-message" id="gameMessage">START</span>
+                </button>
+
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span>REACTION</span>
+                        <strong id="reactionScore">— ms</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>BEST</span>
+                        <strong id="bestScore">— ms</strong>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <footer class="arcade-footer">
+            <span>ZERO ARCADE</span>
+            <span>REACTION TEST</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="reaction.js"></script>
+</body>
+</html>

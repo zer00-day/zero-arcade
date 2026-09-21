@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3">
+    <title>Tic-Tac-Toe - Zero Arcade</title>
+    <link rel="stylesheet" href="tictactoe.css">
+</head>
+<body>
+    <main class="game-page">
+        <header class="game-header">
+            <a class="back-link" href="../index.html">
+                <span class="back-arrow">↙</span>
+                <span>ARCADE</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <span class="game-status">05 / 05</span>
+        </header>
+
+        <section class="game-card" aria-label="Tic-Tac-Toe Game">
+            <div class="game-top">
+                <span class="game-category">MINI GAME 05</span>
+                <span class="game-type">TIC-TAC-TOE</span>
+            </div>
+
+            <div class="game-content">
+                <div class="game-heading">
+                    <span class="game-number">05</span>
+
+                    <div>
+                        <h1>Tic-Tac-Toe</h1>
+                        <p>Beat the AI if you can.</p>
+                    </div>
+                </div>
+
+                <div class="score-board" aria-label="Game score">
+                    <div class="score-item active" id="playerScoreCard">
+                        <span class="score-label">YOU</span>
+                        <strong id="playerScore">0</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span class="score-label">DRAW</span>
+                        <strong id="drawScore">0</strong>
+                    </div>
+
+                    <div class="score-item" id="aiScoreCard">
+                        <span class="score-label">AI</span>
+                        <strong id="aiScore">0</strong>
+                    </div>
+                </div>
+
+                <div class="turn-status" id="turnStatus" aria-live="polite">
+                    YOUR TURN
+                </div>
+
+                <div class="board" id="board" aria-label="Tic-Tac-Toe board">
+                    <button class="cell" type="button" data-index="0" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="1" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="2" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="3" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="4" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="5" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="6" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="7" aria-label="Empty cell"></button>
+                    <button class="cell" type="button" data-index="8" aria-label="Empty cell"></button>
+                </div>
+
+                <div class="game-result" id="gameResult" aria-live="polite"></div>
+
+                <button class="new-game-button" id="newGameButton" type="button">
+                    NEW GAME
+                </button>
+            </div>
+        </section>
+
+        <footer class="game-footer">
+            <span>ZERO ARCADE</span>
+            <span class="watermark">Mark Dave Mellejor</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="tictactoe.js"></script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3">
+    <title>Zero Arcade — Memory Match</title>
+    <link rel="stylesheet" href="memory.css">
+</head>
+<body>
+    <main class="arcade-page">
+        <header class="arcade-header">
+            <a class="back-link" href="../index.html">
+                <span class="back-arrow">↙</span>
+                <span>ARCADE</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <span class="status">02 / 05</span>
+        </header>
+
+        <section class="game-card" aria-label="Memory Match">
+            <div class="game-top">
+                <span class="game-category">MINI GAME 02</span>
+                <span class="game-type">MEMORY MATCH</span>
+            </div>
+
+            <div class="game-content">
+                <div class="game-heading">
+                    <span class="game-number">02</span>
+                    <div>
+                        <h1>Memory Match</h1>
+                        <p>Find all matching pairs.</p>
+                    </div>
+                </div>
+
+                <div class="game-board" id="gameBoard" aria-label="Memory Match board"></div>
+
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span>MOVES</span>
+                        <strong id="movesScore">0</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>TIME</span>
+                        <strong id="timeScore">00:00</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>BEST</span>
+                        <strong id="bestScore">—</strong>
+                    </div>
+                </div>
+
+                <button class="restart-button" id="restartButton" type="button">
+                    NEW GAME
+                </button>
+            </div>
+        </section>
+
+        <footer class="arcade-footer">
+            <span>ZERO ARCADE</span>
+            <span>MEMORY MATCH</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="memory.js"></script>
+</body>
+</html>

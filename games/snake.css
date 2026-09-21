@@ -1,0 +1,572 @@
+:root {
+    --background: #f5f5f3;
+    --card: #ffffff;
+    --text: #101010;
+    --muted: #777777;
+    --soft: #a0a09b;
+    --border: #e6e6e3;
+    --panel: #fafaf8;
+    --panel-hover: #ffffff;
+    --board: #fafaf8;
+    --board-border: #ddddda;
+    --cell: #101010;
+    --blue: #3b82f6;
+    --blue-soft: #edf4ff;
+    --blue-border: #bcd5f8;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="dark"] {
+    --background: #0d0d0d;
+    --card: #151515;
+    --text: #f5f5f3;
+    --muted: #8d8d8d;
+    --soft: #666666;
+    --border: #292929;
+    --panel: #191919;
+    --panel-hover: #1d1d1d;
+    --board: #191919;
+    --board-border: #333333;
+    --cell: #f5f5f3;
+    --blue: #5b9cff;
+    --blue-soft: #17243a;
+    --blue-border: #42699e;
+    --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+html {
+    min-height: 100%;
+    background: var(--background);
+    transition: background 0.25s ease;
+}
+
+body {
+    min-height: 100vh;
+    background:
+        radial-gradient(circle at 50% 0%, rgba(0, 0, 0, 0.035), transparent 34%),
+        var(--background);
+    color: var(--text);
+    font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    transition:
+        background 0.25s ease,
+        color 0.25s ease;
+}
+
+html[data-theme="dark"] body {
+    background:
+        radial-gradient(circle at 50% 0%, rgba(255, 255, 255, 0.035), transparent 34%),
+        var(--background);
+}
+
+button,
+a {
+    font: inherit;
+}
+
+.arcade-page {
+    width: min(100% - 32px, 620px);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 34px 0 24px;
+    display: flex;
+    flex-direction: column;
+}
+
+.arcade-header {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    padding: 0 4px 20px;
+}
+
+.back-link {
+    width: fit-content;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    transition:
+        color 0.2s ease,
+        transform 0.2s ease;
+}
+
+.back-link:hover {
+    color: var(--text);
+    transform: translateX(-2px);
+}
+
+.back-arrow {
+    font-size: 13px;
+    line-height: 1;
+}
+
+.brand {
+    display: flex;
+    align-items: baseline;
+    justify-content: center;
+    gap: 8px;
+}
+
+.brand-name {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.06em;
+}
+
+.brand-label {
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+}
+
+.status {
+    justify-self: end;
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--muted);
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    transition:
+        border-color 0.25s ease,
+        color 0.25s ease;
+}
+
+.game-card {
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 26px;
+    background: var(--card);
+    box-shadow: var(--shadow);
+    animation: card-enter 0.55s ease both;
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+.game-top {
+    min-height: 54px;
+    padding: 0 22px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--border);
+    transition: border-color 0.25s ease;
+}
+
+.game-category,
+.game-type {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.17em;
+}
+
+.game-category {
+    color: var(--muted);
+}
+
+.game-type {
+    color: var(--blue);
+}
+
+.game-content {
+    padding: 34px;
+}
+
+.game-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+}
+
+.game-number {
+    flex: 0 0 auto;
+    margin-top: 4px;
+    color: var(--soft);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+}
+
+.game-heading h1 {
+    font-size: clamp(28px, 6vw, 38px);
+    font-weight: 800;
+    letter-spacing: -0.055em;
+    line-height: 1;
+}
+
+.game-heading p {
+    margin-top: 9px;
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.game-board {
+    width: min(100%, 440px);
+    aspect-ratio: 1;
+    margin: 28px auto 0;
+    padding: 8px;
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    grid-template-rows: repeat(20, 1fr);
+    gap: 2px;
+    border: 1px solid var(--board-border);
+    border-radius: 20px;
+    background: var(--board);
+    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.015);
+    overflow: hidden;
+    transition:
+        background 0.25s ease,
+        border-color 0.25s ease,
+        box-shadow 0.25s ease;
+}
+
+html[data-theme="dark"] .game-board {
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+}
+
+.snake-cell {
+    min-width: 0;
+    min-height: 0;
+    border-radius: 3px;
+    background: transparent;
+}
+
+.snake-body {
+    background: var(--cell);
+}
+
+.snake-head {
+    background: var(--blue);
+}
+
+.snake-food {
+    background: var(--blue);
+    border-radius: 50%;
+}
+
+.snake-controls {
+    width: min(100%, 230px);
+    margin: 18px auto 0;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-areas:
+        ". up ."
+        "left down right";
+    gap: 9px;
+}
+
+.control-button {
+    min-width: 0;
+    min-height: 58px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background: var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    font-size: 20px;
+    font-weight: 600;
+    line-height: 1;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.12s ease,
+        box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.control-button:hover {
+    border-color: var(--soft);
+    background: var(--panel-hover);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.035);
+}
+
+html[data-theme="dark"] .control-button:hover {
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.2);
+}
+
+.control-button:active {
+    background: var(--blue-soft);
+    border-color: var(--blue-border);
+    color: var(--blue);
+    transform: scale(0.96);
+    box-shadow: none;
+}
+
+.control-button.control-active {
+    background: var(--blue-soft);
+    border-color: var(--blue-border);
+    color: var(--blue);
+    box-shadow:
+        0 0 0 3px rgba(59, 130, 246, 0.08),
+        0 8px 24px rgba(59, 130, 246, 0.12);
+    transform: scale(0.97);
+}
+
+.control-up {
+    grid-area: up;
+}
+
+.control-left {
+    grid-area: left;
+}
+
+.control-down {
+    grid-area: down;
+}
+
+.control-right {
+    grid-area: right;
+}
+
+.score-panel {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.score-item {
+    min-height: 70px;
+    padding: 14px 15px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: var(--panel);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.score-item span {
+    color: var(--muted);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.17em;
+}
+
+.score-item strong {
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.restart-button {
+    width: 100%;
+    min-height: 48px;
+    margin-top: 12px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: #101010;
+    color: #ffffff;
+    cursor: pointer;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.18em;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.15s ease,
+        box-shadow 0.2s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+html[data-theme="dark"] .restart-button {
+    background: #f5f5f3;
+    color: #101010;
+}
+
+.restart-button:hover {
+    background: #1c1c1c;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+}
+
+html[data-theme="dark"] .restart-button:hover {
+    background: #ffffff;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.restart-button:active {
+    transform: scale(0.995);
+    box-shadow: none;
+}
+
+.arcade-footer {
+    margin-top: auto;
+    padding: 22px 4px 0;
+    display: flex;
+    justify-content: space-between;
+    color: var(--soft);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    transition: color 0.25s ease;
+}
+
+@keyframes card-enter {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (max-width: 520px) {
+    .arcade-page {
+        width: min(100% - 24px, 620px);
+        padding-top: 22px;
+    }
+
+    .game-card {
+        border-radius: 22px;
+    }
+
+    .game-content {
+        padding: 27px;
+    }
+
+    .game-heading {
+        gap: 11px;
+    }
+
+    .game-board {
+        margin-top: 24px;
+        padding: 7px;
+        border-radius: 17px;
+    }
+
+    .snake-controls {
+        width: min(100%, 250px);
+        margin-top: 16px;
+        gap: 9px;
+    }
+
+    .control-button {
+        min-height: 60px;
+        border-radius: 15px;
+        font-size: 21px;
+    }
+}
+
+@media (max-width: 380px) {
+    .arcade-page {
+        width: calc(100% - 20px);
+        padding-top: 18px;
+    }
+
+    .arcade-header {
+        padding-bottom: 16px;
+    }
+
+    .game-top {
+        min-height: 50px;
+        padding: 0 17px;
+    }
+
+    .game-content {
+        padding: 23px;
+    }
+
+    .game-heading {
+        gap: 9px;
+    }
+
+    .game-number {
+        margin-top: 3px;
+        font-size: 8px;
+    }
+
+    .game-heading h1 {
+        font-size: 27px;
+    }
+
+    .game-board {
+        margin-top: 21px;
+        padding: 6px;
+        gap: 1px;
+        border-radius: 15px;
+    }
+
+    .snake-cell {
+        border-radius: 2px;
+    }
+
+    .snake-controls {
+        width: min(100%, 230px);
+        margin-top: 14px;
+        gap: 8px;
+    }
+
+    .control-button {
+        min-height: 58px;
+        border-radius: 14px;
+        font-size: 20px;
+    }
+
+    .score-panel {
+        gap: 7px;
+    }
+
+    .score-item {
+        min-height: 66px;
+        padding: 12px;
+    }
+
+    .score-item strong {
+        font-size: 14px;
+    }
+
+    .restart-button {
+        min-height: 46px;
+    }
+}
+
+@media (max-width: 340px) {
+    .game-content {
+        padding: 20px;
+    }
+
+    .game-board {
+        padding: 5px;
+    }
+
+    .snake-controls {
+        width: min(100%, 215px);
+        gap: 7px;
+    }
+
+    .control-button {
+        min-height: 54px;
+        border-radius: 13px;
+        font-size: 19px;
+    }
+}

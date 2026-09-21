@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3">
+    <title>Zero Arcade - Minesweeper</title>
+    <link rel="stylesheet" href="minesweeper.css">
+</head>
+<body>
+    <main class="arcade-page">
+        <header class="arcade-header">
+            <a class="back-link" href="../index.html">
+                <span class="back-arrow">&lt;</span>
+                <span>ARCADE</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <span class="status">04 / 05</span>
+        </header>
+
+        <section class="game-card" aria-label="Minesweeper">
+            <div class="game-top">
+                <span class="game-category">MINI GAME 04</span>
+                <span class="game-type">MINESWEEPER</span>
+            </div>
+
+            <div class="game-content">
+                <div class="game-heading">
+                    <span class="game-number">04</span>
+                    <div>
+                        <h1>Minesweeper</h1>
+                        <p>Clear the board without hitting a mine.</p>
+                    </div>
+                </div>
+
+                <div class="game-board" id="gameBoard" aria-label="Minesweeper board"></div>
+
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span>MINES</span>
+                        <strong id="mineCount">10</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>TIME</span>
+                        <strong id="timeScore">00:00</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>BEST</span>
+                        <strong id="bestScore">-</strong>
+                    </div>
+                </div>
+
+                <button class="restart-button" id="restartButton" type="button">
+                    NEW GAME
+                </button>
+            </div>
+        </section>
+
+        <footer class="arcade-footer">
+            <span>ZERO ARCADE</span>
+            <span>MINESWEEPER</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="minesweeper.js"></script>
+</body>
+</html>
