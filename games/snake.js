@@ -6,6 +6,7 @@ const gameStatus = document.getElementById("gameStatus");
 const restartButton = document.getElementById("restartButton");
 
 const gridSize = 20;
+
 let snake = [];
 let food = {};
 let direction = { x: 1, y: 0 };
@@ -16,14 +17,17 @@ let gameLoop = null;
 let gameStarted = false;
 let gameOver = false;
 let directionLocked = false;
+let previousBestScore = bestScore;
 
 bestDisplay.textContent = bestScore;
 
 function setGameStatus(message = "", type = "") {
     gameStatus.textContent = message;
     gameStatus.className = "game-status";
+
     if (message) {
         gameStatus.classList.add("visible");
+
         if (type) {
             gameStatus.classList.add(type);
         }
@@ -36,6 +40,7 @@ function updateHint(text) {
 
 function createBoard() {
     board.innerHTML = "";
+
     for (let i = 0; i < gridSize * gridSize; i++) {
         const cell = document.createElement("div");
         cell.className = "snake-cell";
@@ -72,6 +77,7 @@ function draw() {
 
     snake.forEach((segment, index) => {
         const cell = getCell(segment.x, segment.y);
+
         if (!cell) {
             return;
         }
@@ -81,6 +87,7 @@ function draw() {
 
     if (food) {
         const foodCell = getCell(food.x, food.y);
+
         if (foodCell) {
             foodCell.classList.add("snake-food");
         }
@@ -92,6 +99,8 @@ function draw() {
 
 function startGame() {
     clearInterval(gameLoop);
+
+    previousBestScore = bestScore;
 
     snake = [
         { x: 10, y: 10 },
@@ -122,6 +131,7 @@ function updateGame() {
     direction = nextDirection;
 
     const head = snake[0];
+
     const newHead = {
         x: head.x + direction.x,
         y: head.y + direction.y
@@ -181,7 +191,7 @@ function endGame(completed = false) {
         return;
     }
 
-    const isNewBest = score === bestScore && score > 0;
+    const isNewBest = score > previousBestScore;
 
     if (isNewBest) {
         setGameStatus(`NEW BEST SCORE ${score}`);

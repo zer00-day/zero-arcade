@@ -28,7 +28,7 @@ let gameSession = 0;
 const savedBest = Number(localStorage.getItem(STORAGE_KEY));
 
 if (Number.isFinite(savedBest) && savedBest > 0) {
-    bestScore.textContent = `${savedBest} moves`;
+    bestScore.textContent = savedBest;
 }
 
 function shuffle(array) {
@@ -240,10 +240,17 @@ function finishGame() {
 
     if (isNewBest) {
         localStorage.setItem(STORAGE_KEY, String(moves));
-        bestScore.textContent = `${moves} moves`;
-        setGameStatus(`NEW BEST ${moves} MOVES · ${formatTime(seconds)}`, "new-best");
+        bestScore.textContent = moves;
+
+        setGameStatus(
+            `NEW BEST ${moves} MOVES · ${formatTime(seconds)}`,
+            "new-best"
+        );
     } else {
-        setGameStatus(`CLEARED ${moves} MOVES · ${formatTime(seconds)}`, "win");
+        setGameStatus(
+            `CLEARED ${moves} MOVES · ${formatTime(seconds)}`,
+            "win"
+        );
     }
 
     gameStarted = false;

@@ -333,8 +333,7 @@ function checkWin() {
 function toggleFlag(cell) {
     if (
         gameOver ||
-        cell.revealed ||
-        !gameStarted
+        cell.revealed
     ) {
         return;
     }
