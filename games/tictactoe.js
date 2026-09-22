@@ -1,15 +1,25 @@
 const cells = Array.from(document.querySelectorAll(".cell"));
+
 const turnStatus = document.getElementById("turnStatus");
+
 const gameResult = document.getElementById("gameResult");
+
 const newGameButton = document.getElementById("newGameButton");
+
 const playerScore = document.getElementById("playerScore");
+
 const drawScore = document.getElementById("drawScore");
+
 const aiScore = document.getElementById("aiScore");
+
 const playerScoreCard = document.getElementById("playerScoreCard");
+
 const aiScoreCard = document.getElementById("aiScoreCard");
 
 const PLAYER = "X";
+
 const AI = "O";
+
 const EMPTY = "";
 
 const SCORE_KEY = "zero-arcade-tictactoe-score";
@@ -31,6 +41,7 @@ let board = Array(9).fill(EMPTY);
 let gameActive = true;
 let playerTurn = true;
 let aiTimer = null;
+let gameVersion = 0;
 
 let score = {
     player: 0,
@@ -77,6 +88,7 @@ function updateScore() {
 
 function updateTurnUI(state) {
     turnStatus.classList.remove("thinking", "success", "danger");
+
     playerScoreCard.classList.remove("active");
     aiScoreCard.classList.remove("active");
 
@@ -216,6 +228,7 @@ function minimax(currentBoard, depth, maximizing, alpha, beta) {
             );
 
             currentBoard[move] = EMPTY;
+
             bestScore = Math.max(bestScore, score);
             alpha = Math.max(alpha, bestScore);
 
@@ -241,6 +254,7 @@ function minimax(currentBoard, depth, maximizing, alpha, beta) {
         );
 
         currentBoard[move] = EMPTY;
+
         bestScore = Math.min(bestScore, score);
         beta = Math.min(beta, bestScore);
 
@@ -299,6 +313,10 @@ function highlightWinningLine(line) {
 }
 
 function finishGame(result) {
+    if (!gameActive) {
+        return;
+    }
+
     gameActive = false;
     playerTurn = false;
 
@@ -337,7 +355,14 @@ function checkGameState() {
 }
 
 function makePlayerMove(index) {
-    if (!gameActive || !playerTurn || board[index] !== EMPTY) {
+    if (
+        !gameActive ||
+        !playerTurn ||
+        !Number.isInteger(index) ||
+        index < 0 ||
+        index >= board.length ||
+        board[index] !== EMPTY
+    ) {
         return;
     }
 
@@ -354,19 +379,29 @@ function makePlayerMove(index) {
 
     clearTimeout(aiTimer);
 
+    const currentVersion = gameVersion;
+
     aiTimer = setTimeout(() => {
-        makeAIMove();
+        if (currentVersion !== gameVersion) {
+            return;
+        }
+
+        makeAIMove(currentVersion);
     }, 320);
 }
 
-function makeAIMove() {
-    if (!gameActive) {
+function makeAIMove(currentVersion) {
+    if (
+        currentVersion !== gameVersion ||
+        !gameActive ||
+        playerTurn
+    ) {
         return;
     }
 
     const move = findBestMove();
 
-    if (move === -1) {
+    if (move === -1 || board[move] !== EMPTY) {
         return;
     }
 
@@ -384,6 +419,9 @@ function makeAIMove() {
 
 function resetBoard() {
     clearTimeout(aiTimer);
+    aiTimer = null;
+
+    gameVersion += 1;
 
     board = Array(9).fill(EMPTY);
     gameActive = true;

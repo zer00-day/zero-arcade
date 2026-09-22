@@ -19,11 +19,13 @@ let moves = 0;
 let matchedPairs = 0;
 let seconds = 0;
 let timer = null;
+let mismatchTimer = null;
 let gameStarted = false;
+let gameSession = 0;
 
-const savedBest = localStorage.getItem(STORAGE_KEY);
+const savedBest = Number(localStorage.getItem(STORAGE_KEY));
 
-if (savedBest) {
+if (Number.isFinite(savedBest) && savedBest > 0) {
     bestScore.textContent = `${savedBest} moves`;
 }
 
@@ -66,6 +68,11 @@ function stopTimer() {
     timer = null;
 }
 
+function clearMismatchTimer() {
+    clearTimeout(mismatchTimer);
+    mismatchTimer = null;
+}
+
 function createCard(symbol, index) {
     const card = document.createElement("button");
 
@@ -106,15 +113,25 @@ function flipCard(card) {
     card.classList.add("flipped");
 }
 
-function unflipCards() {
-    setTimeout(() => {
+function unflipCards(session) {
+    mismatchTimer = setTimeout(() => {
+        if (session !== gameSession || !firstCard || !secondCard) {
+            return;
+        }
+
         firstCard.classList.remove("flipped");
         secondCard.classList.remove("flipped");
+
+        mismatchTimer = null;
         resetTurn();
     }, 700);
 }
 
 function handleMatch() {
+    if (!firstCard || !secondCard) {
+        return;
+    }
+
     firstCard.classList.add("matched");
     secondCard.classList.add("matched");
 
@@ -127,7 +144,7 @@ function handleMatch() {
 }
 
 function handleMismatch() {
-    unflipCards();
+    unflipCards(gameSession);
 }
 
 function handleCardClick(card) {
@@ -155,6 +172,7 @@ function handleCardClick(card) {
     secondCard = card;
     lockBoard = true;
     moves++;
+
     updateScores();
 
     if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
@@ -166,17 +184,21 @@ function handleCardClick(card) {
 
 function finishGame() {
     stopTimer();
+    clearMismatchTimer();
 
-    const currentBest = Number(localStorage.getItem(STORAGE_KEY)) || Infinity;
+    const currentBest = Number(localStorage.getItem(STORAGE_KEY));
 
-    if (moves < currentBest) {
-        localStorage.setItem(STORAGE_KEY, moves);
+    if (!Number.isFinite(currentBest) || currentBest <= 0 || moves < currentBest) {
+        localStorage.setItem(STORAGE_KEY, String(moves));
         bestScore.textContent = `${moves} moves`;
     }
 }
 
 function startNewGame() {
     stopTimer();
+    clearMismatchTimer();
+
+    gameSession++;
 
     firstCard = null;
     secondCard = null;

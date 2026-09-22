@@ -5,6 +5,7 @@ const restartButton = document.getElementById("restartButton");
 const controlButtons = document.querySelectorAll(".control-button");
 
 const STORAGE_KEY = "zero-arcade-snake-best";
+
 const BOARD_SIZE = 20;
 const GAME_SPEED = 110;
 
@@ -12,11 +13,13 @@ let snake = [];
 let food = null;
 let direction = { x: 1, y: 0 };
 let nextDirection = { x: 1, y: 0 };
+let directionLocked = false;
 let score = 0;
 let bestScore = Number(localStorage.getItem(STORAGE_KEY)) || 0;
 let gameLoop = null;
 let gameOver = false;
 let gameStarted = false;
+let highlightTimer = null;
 
 bestScoreElement.textContent = bestScore;
 
@@ -43,17 +46,31 @@ function randomPosition() {
 }
 
 function isSnakePosition(position) {
-    return snake.some(segment => segment.x === position.x && segment.y === position.y);
+    return snake.some(
+        segment => segment.x === position.x && segment.y === position.y
+    );
 }
 
 function spawnFood() {
-    let position = randomPosition();
+    const availablePositions = [];
 
-    while (isSnakePosition(position)) {
-        position = randomPosition();
+    for (let y = 0; y < BOARD_SIZE; y++) {
+        for (let x = 0; x < BOARD_SIZE; x++) {
+            if (!isSnakePosition({ x, y })) {
+                availablePositions.push({ x, y });
+            }
+        }
     }
 
-    food = position;
+    if (!availablePositions.length) {
+        food = null;
+        endGame();
+        return;
+    }
+
+    food = availablePositions[
+        Math.floor(Math.random() * availablePositions.length)
+    ];
 }
 
 function render() {
@@ -89,6 +106,7 @@ function updateScore() {
 
 function startGame() {
     clearInterval(gameLoop);
+    gameLoop = null;
 
     snake = [
         { x: 10, y: 10 },
@@ -98,11 +116,17 @@ function startGame() {
 
     direction = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
+    directionLocked = false;
     score = 0;
     gameOver = false;
     gameStarted = true;
 
     spawnFood();
+
+    if (gameOver) {
+        return;
+    }
+
     updateScore();
     render();
 
@@ -114,16 +138,17 @@ function endGame() {
     gameLoop = null;
     gameOver = true;
     gameStarted = false;
+    directionLocked = false;
 
     if (score > bestScore) {
         bestScore = score;
-        localStorage.setItem(STORAGE_KEY, bestScore);
+        localStorage.setItem(STORAGE_KEY, String(bestScore));
         updateScore();
     }
 }
 
 function changeDirection(x, y) {
-    if (!gameStarted || gameOver) {
+    if (!gameStarted || gameOver || directionLocked) {
         return;
     }
 
@@ -144,10 +169,12 @@ function changeDirection(x, y) {
     }
 
     nextDirection = requestedDirection;
+    directionLocked = true;
 }
 
 function updateGame() {
     direction = nextDirection;
+    directionLocked = false;
 
     const head = snake[0];
 
@@ -167,6 +194,7 @@ function updateGame() {
     }
 
     const ateFood =
+        food &&
         newHead.x === food.x &&
         newHead.y === food.y;
 
@@ -174,7 +202,9 @@ function updateGame() {
 
     if (
         bodyToCheck.some(
-            segment => segment.x === newHead.x && segment.y === newHead.y
+            segment =>
+                segment.x === newHead.x &&
+                segment.y === newHead.y
         )
     ) {
         endGame();
@@ -186,6 +216,12 @@ function updateGame() {
     if (ateFood) {
         score++;
         spawnFood();
+
+        if (gameOver) {
+            updateScore();
+            render();
+            return;
+        }
     } else {
         snake.pop();
     }
@@ -203,12 +239,17 @@ function highlightControl(directionName) {
         return;
     }
 
-    button.classList.remove("control-active");
-    void button.offsetWidth;
+    controlButtons.forEach(control => {
+        control.classList.remove("control-active");
+    });
+
     button.classList.add("control-active");
 
-    setTimeout(() => {
+    clearTimeout(highlightTimer);
+
+    highlightTimer = setTimeout(() => {
         button.classList.remove("control-active");
+        highlightTimer = null;
     }, 140);
 }
 
@@ -235,7 +276,12 @@ function handleKeyDown(event) {
     }
 
     event.preventDefault();
-    changeDirection(requestedDirection.x, requestedDirection.y);
+
+    changeDirection(
+        requestedDirection.x,
+        requestedDirection.y
+    );
+
     highlightControl(requestedDirection.control);
 }
 
@@ -254,7 +300,11 @@ function handleControlClick(event) {
         return;
     }
 
-    changeDirection(requestedDirection.x, requestedDirection.y);
+    changeDirection(
+        requestedDirection.x,
+        requestedDirection.y
+    );
+
     highlightControl(directionName);
 }
 

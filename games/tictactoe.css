@@ -367,7 +367,7 @@ html[data-theme="dark"] .cell:hover:not(:disabled) {
     border-color: var(--blue-border);
     background: var(--blue-soft);
     color: var(--blue);
-    animation: winner-pulse 0.8s ease-in-out infinite alternate;
+    animation: winner-highlight 0.45s ease both;
 }
 
 .game-result {
@@ -467,13 +467,15 @@ html[data-theme="dark"] .new-game-button:hover {
     }
 }
 
-@keyframes winner-pulse {
+@keyframes winner-highlight {
     from {
-        transform: scale(1);
+        opacity: 0.72;
+        transform: scale(0.985);
     }
 
     to {
-        transform: scale(1.018);
+        opacity: 1;
+        transform: scale(1);
     }
 }
 

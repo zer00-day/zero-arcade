@@ -5,6 +5,7 @@ const bestScoreElement = document.getElementById("bestScore");
 const restartButton = document.getElementById("restartButton");
 
 const STORAGE_KEY = "zero-arcade-minesweeper-best";
+
 const BOARD_SIZE = 9;
 const MINE_COUNT = 10;
 
@@ -17,8 +18,7 @@ let revealedCount = 0;
 let flaggedCount = 0;
 let longPressTimer = null;
 let longPressTriggered = false;
-
-const bestScore = Number(localStorage.getItem(STORAGE_KEY)) || 0;
+let bestScore = Number(localStorage.getItem(STORAGE_KEY)) || 0;
 
 function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
@@ -101,6 +101,7 @@ function placeMines(safeRow, safeColumn) {
 
     for (let index = availableCells.length - 1; index > 0; index--) {
         const randomIndex = Math.floor(Math.random() * (index + 1));
+
         [availableCells[index], availableCells[randomIndex]] = [
             availableCells[randomIndex],
             availableCells[index]
@@ -174,6 +175,11 @@ function stopTimer() {
     timer = null;
 }
 
+function clearLongPressTimer() {
+    clearTimeout(longPressTimer);
+    longPressTimer = null;
+}
+
 function revealCell(cell) {
     if (
         gameOver ||
@@ -244,7 +250,10 @@ function revealAllMines(explodedCell = null) {
 function loseGame(explodedCell) {
     gameOver = true;
     gameStarted = false;
+
     stopTimer();
+    clearLongPressTimer();
+
     revealAllMines(explodedCell);
 }
 
@@ -257,7 +266,9 @@ function checkWin() {
 
     gameOver = true;
     gameStarted = false;
+
     stopTimer();
+    clearLongPressTimer();
 
     for (const row of board) {
         for (const cell of row) {
@@ -268,12 +279,9 @@ function checkWin() {
         }
     }
 
-    if (
-        !bestScore ||
-        elapsedTime < bestScore
-    ) {
-        localStorage.setItem(STORAGE_KEY, elapsedTime);
-        bestScoreElement.textContent = elapsedTime;
+    if (!bestScore || elapsedTime < bestScore) {
+        bestScore = elapsedTime;
+        localStorage.setItem(STORAGE_KEY, String(bestScore));
     }
 
     updateScore();
@@ -283,12 +291,9 @@ function checkWin() {
 function toggleFlag(cell) {
     if (
         gameOver ||
-        cell.revealed
+        cell.revealed ||
+        !gameStarted
     ) {
-        return;
-    }
-
-    if (!gameStarted) {
         return;
     }
 
@@ -314,7 +319,18 @@ function getCellFromTarget(target) {
     const row = Number(button.dataset.row);
     const column = Number(button.dataset.column);
 
-    return board[row][column];
+    if (
+        !Number.isInteger(row) ||
+        !Number.isInteger(column) ||
+        row < 0 ||
+        row >= BOARD_SIZE ||
+        column < 0 ||
+        column >= BOARD_SIZE
+    ) {
+        return null;
+    }
+
+    return board[row]?.[column] || null;
 }
 
 function handleBoardClick(event) {
@@ -351,21 +367,25 @@ function handleTouchStart(event) {
         return;
     }
 
+    clearLongPressTimer();
     longPressTriggered = false;
 
     longPressTimer = setTimeout(() => {
         longPressTriggered = true;
+        longPressTimer = null;
         toggleFlag(cell);
     }, 500);
 }
 
 function handleTouchEnd() {
-    clearTimeout(longPressTimer);
+    clearLongPressTimer();
 }
 
 function startNewGame() {
     stopTimer();
+    clearLongPressTimer();
 
+    longPressTriggered = false;
     elapsedTime = 0;
     revealedCount = 0;
     flaggedCount = 0;

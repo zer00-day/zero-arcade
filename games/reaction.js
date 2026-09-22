@@ -6,17 +6,17 @@ const bestScore = document.getElementById("bestScore");
 let gameState = "idle";
 let startTime = 0;
 let timer = null;
+let gameSession = 0;
 
 const STORAGE_KEY = "zero-arcade-best";
-const savedBest = localStorage.getItem(STORAGE_KEY);
 
-if (savedBest) {
+const savedBest = Number(localStorage.getItem(STORAGE_KEY));
+
+if (Number.isFinite(savedBest) && savedBest > 0) {
     bestScore.textContent = `${savedBest} ms`;
 }
 
 function setState(state) {
-    gameState = state;
-
     const states = {
         idle: {
             background: "#fafaf8",
@@ -52,6 +52,11 @@ function setState(state) {
 
     const current = states[state];
 
+    if (!current) {
+        return;
+    }
+
+    gameState = state;
     gameArea.style.background = current.background;
     gameArea.style.borderColor = current.borderColor;
     gameArea.style.color = current.color;
@@ -61,28 +66,43 @@ function setState(state) {
 function startGame() {
     clearTimeout(timer);
 
+    gameSession += 1;
+
+    const currentSession = gameSession;
+
+    startTime = 0;
     reactionScore.textContent = "— ms";
     setState("waiting");
 
     const delay = Math.floor(Math.random() * 2500) + 1500;
 
     timer = setTimeout(() => {
+        if (currentSession !== gameSession || gameState !== "waiting") {
+            return;
+        }
+
         startTime = performance.now();
         setState("ready");
     }, delay);
 }
 
 function finishGame() {
+    if (gameState !== "ready" || startTime <= 0) {
+        return;
+    }
+
     const reactionTime = Math.round(performance.now() - startTime);
-    const currentBest = Number(localStorage.getItem(STORAGE_KEY)) || Infinity;
+    const currentBest = Number(localStorage.getItem(STORAGE_KEY));
 
     reactionScore.textContent = `${reactionTime} ms`;
     setState("result");
 
-    if (reactionTime < currentBest) {
-        localStorage.setItem(STORAGE_KEY, reactionTime);
+    if (!Number.isFinite(currentBest) || currentBest <= 0 || reactionTime < currentBest) {
+        localStorage.setItem(STORAGE_KEY, String(reactionTime));
         bestScore.textContent = `${reactionTime} ms`;
     }
+
+    startTime = 0;
 }
 
 function handleGameClick() {
@@ -93,6 +113,8 @@ function handleGameClick() {
 
     if (gameState === "waiting") {
         clearTimeout(timer);
+        gameSession += 1;
+        startTime = 0;
         reactionScore.textContent = "— ms";
         setState("tooSoon");
         return;
