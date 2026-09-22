@@ -10,8 +10,8 @@
 <body>
     <main class="arcade-page">
         <header class="arcade-header">
-            <a class="back-link" href="../index.html">
-                <span class="back-arrow">&lt;</span>
+            <a class="back-link" href="../index.html" aria-label="Back to Arcade">
+                <span class="back-arrow">↙</span>
                 <span>ARCADE</span>
             </a>
 
@@ -38,6 +38,12 @@
                     </div>
                 </div>
 
+                <div class="game-hint" id="gameHint">
+                    FLAG: RIGHT CLICK / HOLD
+                </div>
+
+                <div class="game-status" id="gameStatus" aria-live="polite"></div>
+
                 <div class="game-board" id="gameBoard" aria-label="Minesweeper board"></div>
 
                 <div class="score-panel">
@@ -53,7 +59,7 @@
 
                     <div class="score-item">
                         <span>BEST</span>
-                        <strong id="bestScore">-</strong>
+                        <strong id="bestScore">—</strong>
                     </div>
                 </div>
 

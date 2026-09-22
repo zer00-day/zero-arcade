@@ -1,38 +1,31 @@
 const cells = Array.from(document.querySelectorAll(".cell"));
 
 const turnStatus = document.getElementById("turnStatus");
-
 const gameResult = document.getElementById("gameResult");
-
 const newGameButton = document.getElementById("newGameButton");
-
 const playerScore = document.getElementById("playerScore");
-
 const drawScore = document.getElementById("drawScore");
-
 const aiScore = document.getElementById("aiScore");
-
 const playerScoreCard = document.getElementById("playerScoreCard");
-
 const aiScoreCard = document.getElementById("aiScoreCard");
+const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-button"));
 
 const PLAYER = "X";
-
 const AI = "O";
-
 const EMPTY = "";
 
 const SCORE_KEY = "zero-arcade-tictactoe-score";
+const DIFFICULTY_KEY = "zero-arcade-tictactoe-difficulty";
 
 const winningLines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6]
+[0, 1, 2],
+[3, 4, 5],
+[6, 7, 8],
+[0, 3, 6],
+[1, 4, 7],
+[2, 5, 8],
+[0, 4, 8],
+[2, 4, 6]
 ];
 
 const preferredMoves = [4, 0, 2, 6, 8, 1, 3, 5, 7];
@@ -42,221 +35,266 @@ let gameActive = true;
 let playerTurn = true;
 let aiTimer = null;
 let gameVersion = 0;
+let difficulty = "medium";
 
 let score = {
-    player: 0,
-    draw: 0,
-    ai: 0
+player: 0,
+draw: 0,
+ai: 0
 };
 
 function loadScore() {
-    try {
-        const savedScore = JSON.parse(localStorage.getItem(SCORE_KEY));
+const defaultScore = {
+player: 0,
+draw: 0,
+ai: 0
+};
 
-        if (
-            savedScore &&
-            Number.isFinite(savedScore.player) &&
-            Number.isFinite(savedScore.draw) &&
-            Number.isFinite(savedScore.ai)
-        ) {
-            score = {
-                player: Math.max(0, Math.floor(savedScore.player)),
-                draw: Math.max(0, Math.floor(savedScore.draw)),
-                ai: Math.max(0, Math.floor(savedScore.ai))
-            };
-        }
-    } catch {
-        score = {
-            player: 0,
-            draw: 0,
-            ai: 0
-        };
+try {
+    const rawScore = localStorage.getItem(SCORE_KEY);
+
+    if (!rawScore) {
+        score = defaultScore;
+        updateScore();
+        return;
     }
 
-    updateScore();
+    const savedScore = JSON.parse(rawScore);
+
+    if (!savedScore || typeof savedScore !== "object") {
+        score = defaultScore;
+        updateScore();
+        return;
+    }
+
+    score = {
+        player: Number.isFinite(Number(savedScore.player))
+            ? Math.max(0, Math.floor(Number(savedScore.player)))
+            : 0,
+        draw: Number.isFinite(Number(savedScore.draw))
+            ? Math.max(0, Math.floor(Number(savedScore.draw)))
+            : 0,
+        ai: Number.isFinite(Number(savedScore.ai))
+            ? Math.max(0, Math.floor(Number(savedScore.ai)))
+            : 0
+    };
+} catch {
+    score = defaultScore;
+}
+
+updateScore();
+
 }
 
 function saveScore() {
-    localStorage.setItem(SCORE_KEY, JSON.stringify(score));
+try {
+localStorage.setItem(
+SCORE_KEY,
+JSON.stringify({
+player: score.player,
+draw: score.draw,
+ai: score.ai
+})
+);
+} catch {
+}
 }
 
 function updateScore() {
-    playerScore.textContent = score.player;
-    drawScore.textContent = score.draw;
-    aiScore.textContent = score.ai;
+playerScore.textContent = String(score.player);
+drawScore.textContent = String(score.draw);
+aiScore.textContent = String(score.ai);
+}
+
+function loadDifficulty() {
+const savedDifficulty = localStorage.getItem(DIFFICULTY_KEY);
+
+if (
+    savedDifficulty === "easy" ||
+    savedDifficulty === "medium" ||
+    savedDifficulty === "hard"
+) {
+    difficulty = savedDifficulty;
+}
+
+updateDifficultyUI();
+
+}
+
+function saveDifficulty() {
+localStorage.setItem(DIFFICULTY_KEY, difficulty);
+}
+
+function updateDifficultyUI() {
+difficultyButtons.forEach(button => {
+const isActive = button.dataset.difficulty === difficulty;
+
+    button.classList.toggle("active", isActive);
+    button.setAttribute("aria-pressed", String(isActive));
+});
+
 }
 
 function updateTurnUI(state) {
-    turnStatus.classList.remove("thinking", "success", "danger");
+turnStatus.classList.remove("thinking", "success", "danger");
+playerScoreCard.classList.remove("active");
+aiScoreCard.classList.remove("active");
 
-    playerScoreCard.classList.remove("active");
-    aiScoreCard.classList.remove("active");
+if (state === "player") {
+    turnStatus.textContent = "YOUR TURN";
+    playerScoreCard.classList.add("active");
+    return;
+}
 
-    if (state === "player") {
-        turnStatus.textContent = "YOUR TURN";
-        playerScoreCard.classList.add("active");
-        return;
-    }
+if (state === "ai") {
+    turnStatus.textContent = "AI THINKING";
+    turnStatus.classList.add("thinking");
+    aiScoreCard.classList.add("active");
+    return;
+}
 
-    if (state === "ai") {
-        turnStatus.textContent = "AI THINKING";
-        turnStatus.classList.add("thinking");
-        aiScoreCard.classList.add("active");
-        return;
-    }
+if (state === "player-win") {
+    turnStatus.textContent = "YOU WIN";
+    turnStatus.classList.add("success");
+    playerScoreCard.classList.add("active");
+    return;
+}
 
-    if (state === "player-win") {
-        turnStatus.textContent = "YOU WIN";
-        turnStatus.classList.add("success");
-        playerScoreCard.classList.add("active");
-        return;
-    }
+if (state === "ai-win") {
+    turnStatus.textContent = "AI WINS";
+    turnStatus.classList.add("danger");
+    aiScoreCard.classList.add("active");
+    return;
+}
 
-    if (state === "ai-win") {
-        turnStatus.textContent = "AI WINS";
-        turnStatus.classList.add("danger");
-        aiScoreCard.classList.add("active");
-        return;
-    }
+if (state === "draw") {
+    turnStatus.textContent = "DRAW";
+}
 
-    if (state === "draw") {
-        turnStatus.textContent = "DRAW";
-    }
 }
 
 function updateCells() {
-    cells.forEach((cell, index) => {
-        const value = board[index];
+cells.forEach((cell, index) => {
+const value = board[index];
 
-        cell.textContent = value;
-        cell.disabled = !gameActive || !playerTurn || value !== EMPTY;
+    cell.textContent = value;
+    cell.disabled = !gameActive || !playerTurn || value !== EMPTY;
+    cell.classList.remove("x", "o", "winner");
 
-        cell.classList.remove("x", "o", "winner");
+    if (value === PLAYER) {
+        cell.classList.add("x");
+    }
 
-        if (value === PLAYER) {
-            cell.classList.add("x");
-        }
+    if (value === AI) {
+        cell.classList.add("o");
+    }
 
-        if (value === AI) {
-            cell.classList.add("o");
-        }
+    cell.setAttribute(
+        "aria-label",
+        value === EMPTY ? "Empty cell" : `Cell ${index + 1}, ${value}`
+    );
+});
 
-        cell.setAttribute(
-            "aria-label",
-            value === EMPTY ? "Empty cell" : `Cell ${index + 1}, ${value}`
-        );
-    });
 }
 
 function getWinner(currentBoard) {
-    for (const line of winningLines) {
-        const [a, b, c] = line;
+for (const line of winningLines) {
+const [a, b, c] = line;
 
-        if (
-            currentBoard[a] !== EMPTY &&
-            currentBoard[a] === currentBoard[b] &&
-            currentBoard[a] === currentBoard[c]
-        ) {
-            return {
-                winner: currentBoard[a],
-                line
-            };
-        }
-    }
-
-    if (currentBoard.every(cell => cell !== EMPTY)) {
+    if (
+        currentBoard[a] !== EMPTY &&
+        currentBoard[a] === currentBoard[b] &&
+        currentBoard[a] === currentBoard[c]
+    ) {
         return {
-            winner: "draw",
-            line: []
+            winner: currentBoard[a],
+            line
         };
     }
+}
 
-    return null;
+if (currentBoard.every(cell => cell !== EMPTY)) {
+    return {
+        winner: "draw",
+        line: []
+    };
+}
+
+return null;
+
 }
 
 function getAvailableMoves(currentBoard) {
-    const moves = [];
+const moves = [];
 
-    for (let index = 0; index < currentBoard.length; index++) {
-        if (currentBoard[index] === EMPTY) {
-            moves.push(index);
-        }
+for (let index = 0; index < currentBoard.length; index++) {
+    if (currentBoard[index] === EMPTY) {
+        moves.push(index);
     }
+}
 
-    return moves;
+return moves;
+
 }
 
 function evaluateBoard(currentBoard, depth) {
-    const result = getWinner(currentBoard);
+const result = getWinner(currentBoard);
 
-    if (!result) {
-        return null;
-    }
+if (!result) {
+    return null;
+}
 
-    if (result.winner === AI) {
-        return 10 - depth;
-    }
+if (result.winner === AI) {
+    return 10 - depth;
+}
 
-    if (result.winner === PLAYER) {
-        return depth - 10;
-    }
+if (result.winner === PLAYER) {
+    return depth - 10;
+}
 
+return 0;
+
+}
+
+function minimax(
+currentBoard,
+depth,
+maximizing,
+alpha,
+beta,
+depthLimit = Infinity
+) {
+const terminalScore = evaluateBoard(currentBoard, depth);
+
+if (terminalScore !== null) {
+    return terminalScore;
+}
+
+if (depth >= depthLimit) {
     return 0;
 }
 
-function minimax(currentBoard, depth, maximizing, alpha, beta) {
-    const terminalScore = evaluateBoard(currentBoard, depth);
+const moves = getAvailableMoves(currentBoard);
 
-    if (terminalScore !== null) {
-        return terminalScore;
-    }
-
-    const moves = getAvailableMoves(currentBoard);
-
-    if (maximizing) {
-        let bestScore = -Infinity;
-
-        for (const move of moves) {
-            currentBoard[move] = AI;
-
-            const score = minimax(
-                currentBoard,
-                depth + 1,
-                false,
-                alpha,
-                beta
-            );
-
-            currentBoard[move] = EMPTY;
-
-            bestScore = Math.max(bestScore, score);
-            alpha = Math.max(alpha, bestScore);
-
-            if (beta <= alpha) {
-                break;
-            }
-        }
-
-        return bestScore;
-    }
-
-    let bestScore = Infinity;
+if (maximizing) {
+    let bestScore = -Infinity;
 
     for (const move of moves) {
-        currentBoard[move] = PLAYER;
+        currentBoard[move] = AI;
 
-        const score = minimax(
+        const moveScore = minimax(
             currentBoard,
             depth + 1,
-            true,
+            false,
             alpha,
-            beta
+            beta,
+            depthLimit
         );
 
         currentBoard[move] = EMPTY;
 
-        bestScore = Math.min(bestScore, score);
-        beta = Math.min(beta, bestScore);
+        bestScore = Math.max(bestScore, moveScore);
+        alpha = Math.max(alpha, bestScore);
 
         if (beta <= alpha) {
             break;
@@ -266,188 +304,348 @@ function minimax(currentBoard, depth, maximizing, alpha, beta) {
     return bestScore;
 }
 
-function findBestMove() {
-    const moves = getAvailableMoves(board);
+let bestScore = Infinity;
 
-    if (!moves.length) {
-        return -1;
+for (const move of moves) {
+    currentBoard[move] = PLAYER;
+
+    const moveScore = minimax(
+        currentBoard,
+        depth + 1,
+        true,
+        alpha,
+        beta,
+        depthLimit
+    );
+
+    currentBoard[move] = EMPTY;
+
+    bestScore = Math.min(bestScore, moveScore);
+    beta = Math.min(beta, bestScore);
+
+    if (beta <= alpha) {
+        break;
     }
+}
 
-    let bestScore = -Infinity;
-    let bestMoves = [];
+return bestScore;
 
-    for (const move of moves) {
-        board[move] = AI;
+}
 
-        const moveScore = minimax(
-            board,
-            0,
-            false,
-            -Infinity,
-            Infinity
-        );
+function findTacticalMove() {
+const moves = getAvailableMoves(board);
 
+for (const move of moves) {
+    board[move] = AI;
+
+    if (getWinner(board)?.winner === AI) {
         board[move] = EMPTY;
-
-        if (moveScore > bestScore) {
-            bestScore = moveScore;
-            bestMoves = [move];
-        } else if (moveScore === bestScore) {
-            bestMoves.push(move);
-        }
+        return move;
     }
 
-    for (const preferredMove of preferredMoves) {
-        if (bestMoves.includes(preferredMove)) {
-            return preferredMove;
-        }
+    board[move] = EMPTY;
+}
+
+for (const move of moves) {
+    board[move] = PLAYER;
+
+    if (getWinner(board)?.winner === PLAYER) {
+        board[move] = EMPTY;
+        return move;
     }
 
-    return bestMoves[0];
+    board[move] = EMPTY;
+}
+
+return -1;
+
+}
+
+function findBestMove(depthLimit = Infinity) {
+const moves = getAvailableMoves(board);
+
+if (!moves.length) {
+    return -1;
+}
+
+let bestScore = -Infinity;
+let bestMoves = [];
+
+for (const move of moves) {
+    board[move] = AI;
+
+    const moveScore = minimax(
+        board,
+        0,
+        false,
+        -Infinity,
+        Infinity,
+        depthLimit
+    );
+
+    board[move] = EMPTY;
+
+    if (moveScore > bestScore) {
+        bestScore = moveScore;
+        bestMoves = [move];
+    } else if (moveScore === bestScore) {
+        bestMoves.push(move);
+    }
+}
+
+for (const preferredMove of preferredMoves) {
+    if (bestMoves.includes(preferredMove)) {
+        return preferredMove;
+    }
+}
+
+return bestMoves[0];
+
+}
+
+function findRandomMove(moves) {
+if (!moves.length) {
+return -1;
+}
+
+return moves[Math.floor(Math.random() * moves.length)];
+
+}
+
+function findEasyMove() {
+const moves = getAvailableMoves(board);
+
+if (!moves.length) {
+    return -1;
+}
+
+const tacticalMove = findTacticalMove();
+
+if (tacticalMove !== -1 && Math.random() < 0.25) {
+    return tacticalMove;
+}
+
+if (Math.random() < 0.35) {
+    return findBestMove(1);
+}
+
+return findRandomMove(moves);
+
+}
+
+function findMediumMove() {
+const moves = getAvailableMoves(board);
+
+if (!moves.length) {
+    return -1;
+}
+
+const tacticalMove = findTacticalMove();
+
+if (tacticalMove !== -1) {
+    return tacticalMove;
+}
+
+if (Math.random() < 0.25) {
+    return findRandomMove(moves);
+}
+
+return findBestMove(3);
+
+}
+
+function findAIMove() {
+if (difficulty === "easy") {
+return findEasyMove();
+}
+
+if (difficulty === "hard") {
+    return findBestMove();
+}
+
+return findMediumMove();
+
 }
 
 function highlightWinningLine(line) {
-    line.forEach(index => {
-        cells[index].classList.add("winner");
-    });
+line.forEach(index => {
+cells[index].classList.add("winner");
+});
 }
 
 function finishGame(result) {
-    if (!gameActive) {
-        return;
-    }
+if (!gameActive) {
+return;
+}
 
-    gameActive = false;
-    playerTurn = false;
+gameActive = false;
+playerTurn = false;
 
-    if (result.winner === PLAYER) {
-        score.player += 1;
-        gameResult.textContent = "NICE MOVE. YOU BEAT THE AI.";
-        updateTurnUI("player-win");
-    } else if (result.winner === AI) {
-        score.ai += 1;
-        gameResult.textContent = "THE AI FOUND THE WINNING LINE.";
-        updateTurnUI("ai-win");
-    } else {
-        score.draw += 1;
-        gameResult.textContent = "NO WINNER. PERFECT DEFENSE.";
-        updateTurnUI("draw");
-    }
+if (result.winner === PLAYER) {
+    score.player += 1;
+    gameResult.textContent = "NICE MOVE. YOU BEAT THE AI.";
+    updateTurnUI("player-win");
+} else if (result.winner === AI) {
+    score.ai += 1;
+    gameResult.textContent = "THE AI FOUND THE WINNING LINE.";
+    updateTurnUI("ai-win");
+} else if (result.winner === "draw") {
+    score.draw += 1;
+    gameResult.textContent = "NO WINNER. PERFECT DEFENSE.";
+    updateTurnUI("draw");
+}
 
-    saveScore();
-    updateScore();
-    updateCells();
+saveScore();
+updateScore();
+updateCells();
 
-    if (result.line.length) {
-        highlightWinningLine(result.line);
-    }
+if (result.line.length) {
+    highlightWinningLine(result.line);
+}
+
 }
 
 function checkGameState() {
-    const result = getWinner(board);
+const result = getWinner(board);
 
-    if (result) {
-        finishGame(result);
-        return true;
-    }
+if (result) {
+    finishGame(result);
+    return true;
+}
 
-    return false;
+return false;
+
 }
 
 function makePlayerMove(index) {
-    if (
-        !gameActive ||
-        !playerTurn ||
-        !Number.isInteger(index) ||
-        index < 0 ||
-        index >= board.length ||
-        board[index] !== EMPTY
-    ) {
+if (
+!gameActive ||
+!playerTurn ||
+!Number.isInteger(index) ||
+index < 0 ||
+index >= board.length ||
+board[index] !== EMPTY
+) {
+return;
+}
+
+board[index] = PLAYER;
+playerTurn = false;
+
+updateCells();
+
+if (checkGameState()) {
+    return;
+}
+
+updateTurnUI("ai");
+
+clearTimeout(aiTimer);
+
+const currentVersion = gameVersion;
+
+aiTimer = setTimeout(() => {
+    if (currentVersion !== gameVersion) {
         return;
     }
 
-    board[index] = PLAYER;
-    playerTurn = false;
+    makeAIMove(currentVersion);
+}, 320);
 
-    updateCells();
-
-    if (checkGameState()) {
-        return;
-    }
-
-    updateTurnUI("ai");
-
-    clearTimeout(aiTimer);
-
-    const currentVersion = gameVersion;
-
-    aiTimer = setTimeout(() => {
-        if (currentVersion !== gameVersion) {
-            return;
-        }
-
-        makeAIMove(currentVersion);
-    }, 320);
 }
 
 function makeAIMove(currentVersion) {
-    if (
-        currentVersion !== gameVersion ||
-        !gameActive ||
-        playerTurn
-    ) {
-        return;
-    }
+if (
+currentVersion !== gameVersion ||
+!gameActive ||
+playerTurn
+) {
+return;
+}
 
-    const move = findBestMove();
+const move = findAIMove();
 
-    if (move === -1 || board[move] !== EMPTY) {
-        return;
-    }
+if (move === -1 || board[move] !== EMPTY) {
+    return;
+}
 
-    board[move] = AI;
-    playerTurn = true;
+board[move] = AI;
+playerTurn = true;
 
-    updateCells();
+updateCells();
 
-    if (checkGameState()) {
-        return;
-    }
+if (checkGameState()) {
+    return;
+}
 
-    updateTurnUI("player");
+updateTurnUI("player");
+
 }
 
 function resetBoard() {
-    clearTimeout(aiTimer);
-    aiTimer = null;
+clearTimeout(aiTimer);
 
-    gameVersion += 1;
+aiTimer = null;
+gameVersion += 1;
+board = Array(9).fill(EMPTY);
+gameActive = true;
+playerTurn = true;
+gameResult.textContent = "";
 
-    board = Array(9).fill(EMPTY);
-    gameActive = true;
-    playerTurn = true;
+updateTurnUI("player");
+updateCells();
 
-    gameResult.textContent = "";
+}
 
-    updateTurnUI("player");
-    updateCells();
+function setDifficulty(nextDifficulty) {
+if (
+nextDifficulty !== "easy" &&
+nextDifficulty !== "medium" &&
+nextDifficulty !== "hard"
+) {
+return;
+}
+
+if (difficulty === nextDifficulty) {
+    return;
+}
+
+difficulty = nextDifficulty;
+
+saveDifficulty();
+updateDifficultyUI();
+resetBoard();
+
+}
+
+function handleDifficultyClick(event) {
+const nextDifficulty = event.currentTarget.dataset.difficulty;
+
+setDifficulty(nextDifficulty);
+
 }
 
 function handleCellClick(event) {
-    const index = Number(event.currentTarget.dataset.index);
+const index = Number(event.currentTarget.dataset.index);
 
-    if (!Number.isInteger(index)) {
-        return;
-    }
-
-    makePlayerMove(index);
+if (!Number.isInteger(index)) {
+    return;
 }
 
+makePlayerMove(index);
+
+}
+
+difficultyButtons.forEach(button => {
+button.addEventListener("click", handleDifficultyClick);
+});
+
 cells.forEach(cell => {
-    cell.addEventListener("click", handleCellClick);
+cell.addEventListener("click", handleCellClick);
 });
 
 newGameButton.addEventListener("click", resetBoard);
 
 loadScore();
+loadDifficulty();
 resetBoard();

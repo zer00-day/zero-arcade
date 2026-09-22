@@ -1,4 +1,4 @@
-:root {
+ :root {
     --background: #f5f5f3;
     --card: #ffffff;
     --text: #101010;
@@ -270,6 +270,76 @@ a {
     letter-spacing: -0.03em;
 }
 
+.difficulty-control {
+    margin-top: 14px;
+    min-height: 48px;
+    padding: 7px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+}
+
+.difficulty-label {
+    flex: 0 0 auto;
+    padding-left: 7px;
+    color: var(--muted);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.17em;
+}
+
+.difficulty-options {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 5px;
+}
+
+.difficulty-button {
+    min-height: 32px;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.difficulty-button:hover:not(.active) {
+    color: var(--text);
+    background: var(--panel-hover);
+}
+
+.difficulty-button.active {
+    border-color: var(--blue-border);
+    background: var(--blue-soft);
+    color: var(--blue);
+}
+
+.difficulty-button:active {
+    transform: scale(0.97);
+}
+
+.difficulty-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
 .turn-status {
     min-height: 16px;
     margin-top: 12px;
@@ -502,6 +572,19 @@ html[data-theme="dark"] .new-game-button:hover {
         gap: 8px;
     }
 
+    .difficulty-control {
+        gap: 8px;
+    }
+
+    .difficulty-label {
+        padding-left: 5px;
+    }
+
+    .difficulty-button {
+        min-height: 31px;
+        font-size: 6px;
+    }
+
     .board {
         width: min(100%, 410px);
         margin-top: 12px;
@@ -559,6 +642,20 @@ html[data-theme="dark"] .new-game-button:hover {
         font-size: 14px;
     }
 
+    .difficulty-control {
+        min-height: 46px;
+        padding: 6px;
+    }
+
+    .difficulty-label {
+        font-size: 6px;
+    }
+
+    .difficulty-button {
+        min-height: 30px;
+        letter-spacing: 0.1em;
+    }
+
     .turn-status {
         margin-top: 10px;
     }
@@ -580,6 +677,20 @@ html[data-theme="dark"] .new-game-button:hover {
 @media (max-width: 340px) {
     .game-content {
         padding: 20px;
+    }
+
+    .difficulty-control {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 6px;
+    }
+
+    .difficulty-label {
+        padding: 0 6px;
+    }
+
+    .difficulty-options {
+        width: 100%;
     }
 
     .board {

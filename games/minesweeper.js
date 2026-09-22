@@ -3,11 +3,13 @@ const mineCountElement = document.getElementById("mineCount");
 const timeScoreElement = document.getElementById("timeScore");
 const bestScoreElement = document.getElementById("bestScore");
 const restartButton = document.getElementById("restartButton");
+const gameHint = document.getElementById("gameHint");
+const gameStatus = document.getElementById("gameStatus");
 
 const STORAGE_KEY = "zero-arcade-minesweeper-best";
-
 const BOARD_SIZE = 9;
 const MINE_COUNT = 10;
+const LONG_PRESS_DELAY = 500;
 
 let board = [];
 let gameStarted = false;
@@ -23,7 +25,6 @@ let bestScore = Number(localStorage.getItem(STORAGE_KEY)) || 0;
 function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
-
     return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
@@ -31,6 +32,19 @@ function updateScore() {
     mineCountElement.textContent = MINE_COUNT - flaggedCount;
     timeScoreElement.textContent = formatTime(elapsedTime);
     bestScoreElement.textContent = bestScore || "—";
+}
+
+function setGameStatus(message = "", type = "") {
+    gameStatus.textContent = message;
+    gameStatus.className = "game-status";
+
+    if (message) {
+        gameStatus.classList.add("visible");
+    }
+
+    if (type) {
+        gameStatus.classList.add(type);
+    }
 }
 
 function createEmptyBoard() {
@@ -121,6 +135,26 @@ function placeMines(safeRow, safeColumn) {
     }
 }
 
+function getCellLabel(cell) {
+    if (cell.flagged) {
+        return `Row ${cell.row + 1}, Column ${cell.column + 1}, flagged`;
+    }
+
+    if (!cell.revealed) {
+        return `Row ${cell.row + 1}, Column ${cell.column + 1}, hidden`;
+    }
+
+    if (cell.mine) {
+        return `Row ${cell.row + 1}, Column ${cell.column + 1}, mine`;
+    }
+
+    if (cell.adjacent > 0) {
+        return `Row ${cell.row + 1}, Column ${cell.column + 1}, ${cell.adjacent} adjacent mines`;
+    }
+
+    return `Row ${cell.row + 1}, Column ${cell.column + 1}, empty`;
+}
+
 function renderBoard() {
     gameBoard.innerHTML = "";
 
@@ -132,10 +166,7 @@ function renderBoard() {
             button.className = "mine-cell";
             button.dataset.row = cell.row;
             button.dataset.column = cell.column;
-            button.setAttribute(
-                "aria-label",
-                `Row ${cell.row + 1}, Column ${cell.column + 1}`
-            );
+            button.setAttribute("aria-label", getCellLabel(cell));
 
             if (cell.flagged) {
                 button.classList.add("flagged");
@@ -193,6 +224,7 @@ function revealCell(cell) {
         placeMines(cell.row, cell.column);
         gameStarted = true;
         startTimer();
+        setGameStatus();
     }
 
     cell.revealed = true;
@@ -253,8 +285,9 @@ function loseGame(explodedCell) {
 
     stopTimer();
     clearLongPressTimer();
-
     revealAllMines(explodedCell);
+
+    setGameStatus("GAME OVER MINE HIT", "lose");
 }
 
 function checkWin() {
@@ -279,13 +312,22 @@ function checkWin() {
         }
     }
 
-    if (!bestScore || elapsedTime < bestScore) {
+    const newBest = !bestScore || elapsedTime < bestScore;
+
+    if (newBest) {
         bestScore = elapsedTime;
         localStorage.setItem(STORAGE_KEY, String(bestScore));
     }
 
     updateScore();
     renderBoard();
+
+    setGameStatus(
+        newBest
+            ? `NEW BEST ${formatTime(elapsedTime)}`
+            : `CLEARED ${formatTime(elapsedTime)}`,
+        "win"
+    );
 }
 
 function toggleFlag(cell) {
@@ -374,10 +416,14 @@ function handleTouchStart(event) {
         longPressTriggered = true;
         longPressTimer = null;
         toggleFlag(cell);
-    }, 500);
+    }, LONG_PRESS_DELAY);
 }
 
 function handleTouchEnd() {
+    clearLongPressTimer();
+}
+
+function handleTouchMove() {
     clearLongPressTimer();
 }
 
@@ -394,15 +440,18 @@ function startNewGame() {
 
     createEmptyBoard();
     updateScore();
+    setGameStatus();
     renderBoard();
+
+    gameHint.textContent = "FLAG: RIGHT CLICK / HOLD";
 }
 
 restartButton.addEventListener("click", startNewGame);
-
 gameBoard.addEventListener("click", handleBoardClick);
 gameBoard.addEventListener("contextmenu", handleContextMenu);
 gameBoard.addEventListener("touchstart", handleTouchStart, { passive: true });
 gameBoard.addEventListener("touchend", handleTouchEnd);
 gameBoard.addEventListener("touchcancel", handleTouchEnd);
+gameBoard.addEventListener("touchmove", handleTouchMove, { passive: true });
 
 startNewGame();

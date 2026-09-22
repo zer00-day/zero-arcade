@@ -11,6 +11,8 @@
     --area-hover-border: #cfcfcb;
     --blue: #3b82f6;
     --blue-soft: #edf4ff;
+    --success: #16a34a;
+    --success-soft: #eefbf2;
     --danger: #ef4444;
     --danger-soft: #fff1f1;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
@@ -29,6 +31,8 @@ html[data-theme="dark"] {
     --area-hover-border: #414141;
     --blue: #5b9cff;
     --blue-soft: #17243a;
+    --success: #4ade80;
+    --success-soft: #17291d;
     --danger: #ef4444;
     --danger-soft: #351c1c;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
@@ -104,6 +108,12 @@ a {
 .back-link:hover {
     color: var(--text);
     transform: translateX(-2px);
+}
+
+.back-link:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 4px;
+    border-radius: 4px;
 }
 
 .back-arrow {
@@ -246,6 +256,11 @@ a {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.035);
 }
 
+.game-area:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+}
+
 html[data-theme="dark"] .game-area:hover {
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
 }
@@ -264,6 +279,41 @@ html[data-theme="dark"] .game-area:hover {
     font-weight: 800;
     letter-spacing: 0.2em;
     line-height: 1;
+}
+
+.game-hint {
+    margin-top: 12px;
+    text-align: center;
+    color: var(--soft);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    transition: color 0.2s ease;
+}
+
+.game-status {
+    min-height: 16px;
+    margin-top: 7px;
+    text-align: center;
+    color: var(--success);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.game-status.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.game-status.danger {
+    color: var(--danger);
 }
 
 .score-panel {

@@ -10,7 +10,7 @@
 <body>
     <main class="arcade-page">
         <header class="arcade-header">
-            <a class="back-link" href="../index.html">
+            <a class="back-link" href="../index.html" aria-label="Back to Arcade">
                 <span class="back-arrow">↙</span>
                 <span>ARCADE</span>
             </a>
@@ -39,6 +39,10 @@
                 </div>
 
                 <div class="game-board" id="gameBoard" aria-label="Snake game board"></div>
+
+                <div class="game-hint" id="gameHint">USE ARROWS OR WASD</div>
+
+                <div class="game-status" id="gameStatus" aria-live="polite"></div>
 
                 <div class="snake-controls" aria-label="Snake controls">
                     <button class="control-button control-up" type="button" data-direction="up" aria-label="Move up">↑</button>

@@ -13,6 +13,10 @@
     --blue: #3b82f6;
     --blue-soft: #edf4ff;
     --blue-border: #bcd5f8;
+    --success: #16a34a;
+    --success-soft: #eefbf2;
+    --danger: #ef4444;
+    --danger-soft: #fff1f1;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
 }
 
@@ -31,6 +35,10 @@ html[data-theme="dark"] {
     --blue: #5b9cff;
     --blue-soft: #17243a;
     --blue-border: #42699e;
+    --success: #4ade80;
+    --success-soft: #17291d;
+    --danger: #ef4444;
+    --danger-soft: #351c1c;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
 }
 
@@ -104,6 +112,12 @@ a {
 .back-link:hover {
     color: var(--text);
     transform: translateX(-2px);
+}
+
+.back-link:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 4px;
+    border-radius: 4px;
 }
 
 .back-arrow {
@@ -243,6 +257,13 @@ html[data-theme="dark"] .game-board {
     box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
 }
 
+.game-board.game-over {
+    border-color: var(--danger);
+    box-shadow:
+        inset 0 0 0 1px rgba(239, 68, 68, 0.08),
+        0 0 0 3px rgba(239, 68, 68, 0.05);
+}
+
 .snake-cell {
     min-width: 0;
     min-height: 0;
@@ -261,6 +282,41 @@ html[data-theme="dark"] .game-board {
 .snake-food {
     background: var(--blue);
     border-radius: 50%;
+}
+
+.game-hint {
+    margin-top: 12px;
+    text-align: center;
+    color: var(--soft);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    transition: color 0.2s ease;
+}
+
+.game-status {
+    min-height: 16px;
+    margin-top: 7px;
+    text-align: center;
+    color: var(--success);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    line-height: 1.4;
+    opacity: 0;
+    transform: translateY(-2px);
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+}
+
+.game-status.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.game-status.danger {
+    color: var(--danger);
 }
 
 .snake-controls {
@@ -300,6 +356,11 @@ html[data-theme="dark"] .game-board {
     border-color: var(--soft);
     background: var(--panel-hover);
     box-shadow: 0 8px 22px rgba(0, 0, 0, 0.035);
+}
+
+.control-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
 }
 
 html[data-theme="dark"] .control-button:hover {
@@ -409,6 +470,11 @@ html[data-theme="dark"] .restart-button {
 html[data-theme="dark"] .restart-button:hover {
     background: #ffffff;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+}
+
+.restart-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
 }
 
 .restart-button:active {

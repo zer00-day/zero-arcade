@@ -1,88 +1,77 @@
-const gameBoard = document.getElementById("gameBoard");
-const scoreElement = document.getElementById("score");
-const bestScoreElement = document.getElementById("bestScore");
+const board = document.getElementById("gameBoard");
+const scoreDisplay = document.getElementById("score");
+const bestDisplay = document.getElementById("bestScore");
+const gameHint = document.getElementById("gameHint");
+const gameStatus = document.getElementById("gameStatus");
 const restartButton = document.getElementById("restartButton");
-const controlButtons = document.querySelectorAll(".control-button");
 
-const STORAGE_KEY = "zero-arcade-snake-best";
-
-const BOARD_SIZE = 20;
-const GAME_SPEED = 110;
-
+const gridSize = 20;
 let snake = [];
-let food = null;
+let food = {};
 let direction = { x: 1, y: 0 };
 let nextDirection = { x: 1, y: 0 };
-let directionLocked = false;
 let score = 0;
-let bestScore = Number(localStorage.getItem(STORAGE_KEY)) || 0;
+let bestScore = Number(localStorage.getItem("zero-arcade-best-snake")) || 0;
 let gameLoop = null;
-let gameOver = false;
 let gameStarted = false;
-let highlightTimer = null;
+let gameOver = false;
+let directionLocked = false;
 
-bestScoreElement.textContent = bestScore;
+bestDisplay.textContent = bestScore;
+
+function setGameStatus(message = "", type = "") {
+    gameStatus.textContent = message;
+    gameStatus.className = "game-status";
+    if (message) {
+        gameStatus.classList.add("visible");
+        if (type) {
+            gameStatus.classList.add(type);
+        }
+    }
+}
+
+function updateHint(text) {
+    gameHint.textContent = text;
+}
 
 function createBoard() {
-    gameBoard.innerHTML = "";
-
-    for (let index = 0; index < BOARD_SIZE * BOARD_SIZE; index++) {
-        const cell = document.createElement("span");
+    board.innerHTML = "";
+    for (let i = 0; i < gridSize * gridSize; i++) {
+        const cell = document.createElement("div");
         cell.className = "snake-cell";
-        cell.dataset.index = index;
-        gameBoard.appendChild(cell);
+        board.appendChild(cell);
     }
 }
 
 function getCell(x, y) {
-    return gameBoard.children[y * BOARD_SIZE + x];
+    return board.children[y * gridSize + x];
 }
 
-function randomPosition() {
-    return {
-        x: Math.floor(Math.random() * BOARD_SIZE),
-        y: Math.floor(Math.random() * BOARD_SIZE)
-    };
-}
+function randomFood() {
+    const available = [];
 
-function isSnakePosition(position) {
-    return snake.some(
-        segment => segment.x === position.x && segment.y === position.y
-    );
-}
-
-function spawnFood() {
-    const availablePositions = [];
-
-    for (let y = 0; y < BOARD_SIZE; y++) {
-        for (let x = 0; x < BOARD_SIZE; x++) {
-            if (!isSnakePosition({ x, y })) {
-                availablePositions.push({ x, y });
+    for (let y = 0; y < gridSize; y++) {
+        for (let x = 0; x < gridSize; x++) {
+            if (!snake.some(segment => segment.x === x && segment.y === y)) {
+                available.push({ x, y });
             }
         }
     }
 
-    if (!availablePositions.length) {
-        food = null;
-        endGame();
-        return;
+    if (available.length === 0) {
+        return null;
     }
 
-    food = availablePositions[
-        Math.floor(Math.random() * availablePositions.length)
-    ];
+    return available[Math.floor(Math.random() * available.length)];
 }
 
-function render() {
-    const cells = gameBoard.children;
-
-    for (const cell of cells) {
+function draw() {
+    document.querySelectorAll(".snake-cell").forEach(cell => {
         cell.className = "snake-cell";
-    }
+    });
 
     snake.forEach((segment, index) => {
         const cell = getCell(segment.x, segment.y);
-
         if (!cell) {
             return;
         }
@@ -92,21 +81,17 @@ function render() {
 
     if (food) {
         const foodCell = getCell(food.x, food.y);
-
         if (foodCell) {
             foodCell.classList.add("snake-food");
         }
     }
-}
 
-function updateScore() {
-    scoreElement.textContent = score;
-    bestScoreElement.textContent = bestScore;
+    scoreDisplay.textContent = score;
+    bestDisplay.textContent = bestScore;
 }
 
 function startGame() {
     clearInterval(gameLoop);
-    gameLoop = null;
 
     snake = [
         { x: 10, y: 10 },
@@ -116,68 +101,27 @@ function startGame() {
 
     direction = { x: 1, y: 0 };
     nextDirection = { x: 1, y: 0 };
-    directionLocked = false;
     score = 0;
-    gameOver = false;
     gameStarted = true;
+    gameOver = false;
+    directionLocked = false;
+    food = randomFood();
 
-    spawnFood();
+    setGameStatus("");
+    updateHint("USE ARROWS OR WASD");
+    draw();
 
+    gameLoop = setInterval(updateGame, 120);
+}
+
+function updateGame() {
     if (gameOver) {
         return;
     }
 
-    updateScore();
-    render();
-
-    gameLoop = setInterval(updateGame, GAME_SPEED);
-}
-
-function endGame() {
-    clearInterval(gameLoop);
-    gameLoop = null;
-    gameOver = true;
-    gameStarted = false;
-    directionLocked = false;
-
-    if (score > bestScore) {
-        bestScore = score;
-        localStorage.setItem(STORAGE_KEY, String(bestScore));
-        updateScore();
-    }
-}
-
-function changeDirection(x, y) {
-    if (!gameStarted || gameOver || directionLocked) {
-        return;
-    }
-
-    const requestedDirection = { x, y };
-
-    if (
-        direction.x === requestedDirection.x &&
-        direction.y === requestedDirection.y
-    ) {
-        return;
-    }
-
-    if (
-        direction.x + requestedDirection.x === 0 &&
-        direction.y + requestedDirection.y === 0
-    ) {
-        return;
-    }
-
-    nextDirection = requestedDirection;
-    directionLocked = true;
-}
-
-function updateGame() {
     direction = nextDirection;
-    directionLocked = false;
 
     const head = snake[0];
-
     const newHead = {
         x: head.x + direction.x,
         y: head.y + direction.y
@@ -185,137 +129,123 @@ function updateGame() {
 
     if (
         newHead.x < 0 ||
-        newHead.x >= BOARD_SIZE ||
+        newHead.x >= gridSize ||
         newHead.y < 0 ||
-        newHead.y >= BOARD_SIZE
+        newHead.y >= gridSize
     ) {
         endGame();
         return;
     }
 
-    const ateFood =
-        food &&
-        newHead.x === food.x &&
-        newHead.y === food.y;
+    const hitsSelf = snake.some(segment => {
+        return segment.x === newHead.x && segment.y === newHead.y;
+    });
 
-    const bodyToCheck = ateFood ? snake : snake.slice(0, -1);
-
-    if (
-        bodyToCheck.some(
-            segment =>
-                segment.x === newHead.x &&
-                segment.y === newHead.y
-        )
-    ) {
+    if (hitsSelf) {
         endGame();
         return;
     }
 
     snake.unshift(newHead);
 
-    if (ateFood) {
-        score++;
-        spawnFood();
+    if (newHead.x === food.x && newHead.y === food.y) {
+        score += 1;
 
-        if (gameOver) {
-            updateScore();
-            render();
+        if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem("zero-arcade-best-snake", String(bestScore));
+        }
+
+        food = randomFood();
+
+        if (!food) {
+            endGame(true);
             return;
         }
     } else {
         snake.pop();
     }
 
-    updateScore();
-    render();
+    directionLocked = false;
+    draw();
 }
 
-function highlightControl(directionName) {
-    const button = document.querySelector(
-        `.control-button[data-direction="${directionName}"]`
-    );
+function endGame(completed = false) {
+    clearInterval(gameLoop);
+    gameOver = true;
+    gameStarted = false;
 
-    if (!button) {
+    if (completed) {
+        setGameStatus(`NEW BEST SCORE ${score}`);
+        updateHint("BOARD CLEARED");
         return;
     }
 
-    controlButtons.forEach(control => {
-        control.classList.remove("control-active");
+    const isNewBest = score === bestScore && score > 0;
+
+    if (isNewBest) {
+        setGameStatus(`NEW BEST SCORE ${score}`);
+    } else {
+        setGameStatus(`GAME OVER SCORE ${score}`, "danger");
+    }
+
+    updateHint("PRESS NEW GAME TO TRY AGAIN");
+}
+
+function changeDirection(newDirection) {
+    if (!gameStarted || gameOver || directionLocked) {
+        return;
+    }
+
+    if (
+        newDirection.x === -direction.x &&
+        newDirection.y === -direction.y
+    ) {
+        return;
+    }
+
+    nextDirection = newDirection;
+    directionLocked = true;
+}
+
+document.addEventListener("keydown", event => {
+    const key = event.key.toLowerCase();
+
+    const directions = {
+        arrowup: { x: 0, y: -1 },
+        w: { x: 0, y: -1 },
+        arrowdown: { x: 0, y: 1 },
+        s: { x: 0, y: 1 },
+        arrowleft: { x: -1, y: 0 },
+        a: { x: -1, y: 0 },
+        arrowright: { x: 1, y: 0 },
+        d: { x: 1, y: 0 }
+    };
+
+    if (directions[key]) {
+        event.preventDefault();
+        changeDirection(directions[key]);
+    }
+});
+
+document.querySelectorAll("[data-direction]").forEach(button => {
+    button.addEventListener("click", () => {
+        const directionName = button.dataset.direction;
+
+        const directions = {
+            up: { x: 0, y: -1 },
+            down: { x: 0, y: 1 },
+            left: { x: -1, y: 0 },
+            right: { x: 1, y: 0 }
+        };
+
+        if (directions[directionName]) {
+            changeDirection(directions[directionName]);
+        }
     });
-
-    button.classList.add("control-active");
-
-    clearTimeout(highlightTimer);
-
-    highlightTimer = setTimeout(() => {
-        button.classList.remove("control-active");
-        highlightTimer = null;
-    }, 140);
-}
-
-function handleKeyDown(event) {
-    const keyDirections = {
-        ArrowUp: { x: 0, y: -1, control: "up" },
-        w: { x: 0, y: -1, control: "up" },
-        W: { x: 0, y: -1, control: "up" },
-        ArrowDown: { x: 0, y: 1, control: "down" },
-        s: { x: 0, y: 1, control: "down" },
-        S: { x: 0, y: 1, control: "down" },
-        ArrowLeft: { x: -1, y: 0, control: "left" },
-        a: { x: -1, y: 0, control: "left" },
-        A: { x: -1, y: 0, control: "left" },
-        ArrowRight: { x: 1, y: 0, control: "right" },
-        d: { x: 1, y: 0, control: "right" },
-        D: { x: 1, y: 0, control: "right" }
-    };
-
-    const requestedDirection = keyDirections[event.key];
-
-    if (!requestedDirection) {
-        return;
-    }
-
-    event.preventDefault();
-
-    changeDirection(
-        requestedDirection.x,
-        requestedDirection.y
-    );
-
-    highlightControl(requestedDirection.control);
-}
-
-function handleControlClick(event) {
-    const directionMap = {
-        up: { x: 0, y: -1 },
-        down: { x: 0, y: 1 },
-        left: { x: -1, y: 0 },
-        right: { x: 1, y: 0 }
-    };
-
-    const directionName = event.currentTarget.dataset.direction;
-    const requestedDirection = directionMap[directionName];
-
-    if (!requestedDirection) {
-        return;
-    }
-
-    changeDirection(
-        requestedDirection.x,
-        requestedDirection.y
-    );
-
-    highlightControl(directionName);
-}
+});
 
 restartButton.addEventListener("click", startGame);
 
-document.addEventListener("keydown", handleKeyDown);
-
-controlButtons.forEach(button => {
-    button.addEventListener("click", handleControlClick);
-});
-
 createBoard();
-updateScore();
 startGame();

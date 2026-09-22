@@ -19,6 +19,9 @@
     --danger-soft: #fff1f1;
     --danger-strong: #fee2e2;
     --danger-border: #f3caca;
+    --success: #16a34a;
+    --success-soft: #effcf3;
+    --success-border: #c9e8d0;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
 }
 
@@ -43,6 +46,9 @@ html[data-theme="dark"] {
     --danger-soft: #351c1c;
     --danger-strong: #452020;
     --danger-border: #703737;
+    --success: #4ade80;
+    --success-soft: #172b1d;
+    --success-border: #31583a;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
 }
 
@@ -231,10 +237,51 @@ a {
     line-height: 1.5;
 }
 
+.game-hint {
+    margin-top: 17px;
+    color: var(--soft);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-align: center;
+    transition:
+        color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.game-status {
+    min-height: 20px;
+    margin-top: 7px;
+    color: var(--muted);
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-align: center;
+    opacity: 0;
+    transform: translateY(3px);
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease,
+        color 0.2s ease;
+}
+
+.game-status.visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.game-status.win {
+    color: var(--success);
+}
+
+.game-status.lose {
+    color: var(--danger);
+}
+
 .game-board {
     width: min(100%, 440px);
     aspect-ratio: 1;
-    margin: 28px auto 0;
+    margin: 20px auto 0;
     padding: 7px;
     display: grid;
     grid-template-columns: repeat(9, 1fr);
@@ -284,6 +331,11 @@ html[data-theme="dark"] .game-board {
     background: var(--cell-hover);
 }
 
+.mine-cell:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: -2px;
+}
+
 .mine-cell:active {
     transform: scale(0.94);
 }
@@ -310,6 +362,7 @@ html[data-theme="dark"] .game-board {
     border-color: var(--danger-border);
     background: var(--danger-strong);
     color: var(--danger);
+    animation: mine-explode 0.28s ease;
 }
 
 .mine-cell.number-1 {
@@ -418,6 +471,11 @@ html[data-theme="dark"] .restart-button:hover {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
+.restart-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
+}
+
 .restart-button:active {
     transform: scale(0.995);
     box-shadow: none;
@@ -447,6 +505,20 @@ html[data-theme="dark"] .restart-button:hover {
     }
 }
 
+@keyframes mine-explode {
+    0% {
+        transform: scale(0.9);
+    }
+
+    55% {
+        transform: scale(1.08);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
 @media (max-width: 520px) {
     .arcade-page {
         width: min(100% - 24px, 620px);
@@ -466,7 +538,7 @@ html[data-theme="dark"] .restart-button:hover {
     }
 
     .game-board {
-        margin-top: 24px;
+        margin-top: 18px;
         padding: 6px;
         border-radius: 17px;
         gap: 2px;
@@ -517,8 +589,13 @@ html[data-theme="dark"] .restart-button:hover {
         font-size: 27px;
     }
 
+    .game-hint {
+        margin-top: 15px;
+        font-size: 6px;
+    }
+
     .game-board {
-        margin-top: 21px;
+        margin-top: 16px;
         padding: 5px;
         gap: 2px;
         border-radius: 15px;

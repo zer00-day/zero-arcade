@@ -3,6 +3,8 @@ const movesScore = document.getElementById("movesScore");
 const timeScore = document.getElementById("timeScore");
 const bestScore = document.getElementById("bestScore");
 const restartButton = document.getElementById("restartButton");
+const gameHint = document.getElementById("gameHint");
+const gameStatus = document.getElementById("gameStatus");
 
 const STORAGE_KEY = "zero-arcade-memory-best";
 
@@ -34,7 +36,11 @@ function shuffle(array) {
 
     for (let i = shuffled.length - 1; i > 0; i--) {
         const randomIndex = Math.floor(Math.random() * (i + 1));
-        [shuffled[i], shuffled[randomIndex]] = [shuffled[randomIndex], shuffled[i]];
+
+        [shuffled[i], shuffled[randomIndex]] = [
+            shuffled[randomIndex],
+            shuffled[i]
+        ];
     }
 
     return shuffled;
@@ -50,6 +56,19 @@ function formatTime(value) {
 function updateScores() {
     movesScore.textContent = moves;
     timeScore.textContent = formatTime(seconds);
+}
+
+function setGameStatus(message = "", type = "") {
+    gameStatus.textContent = message;
+    gameStatus.className = "game-status";
+
+    if (message) {
+        gameStatus.classList.add("visible");
+    }
+
+    if (type) {
+        gameStatus.classList.add(type);
+    }
 }
 
 function startTimer() {
@@ -71,6 +90,24 @@ function stopTimer() {
 function clearMismatchTimer() {
     clearTimeout(mismatchTimer);
     mismatchTimer = null;
+}
+
+function getCardLabel(card) {
+    const symbol = card.dataset.symbol;
+
+    if (card.classList.contains("matched")) {
+        return `Matched card ${symbol}`;
+    }
+
+    if (card.classList.contains("flipped")) {
+        return `Revealed card ${symbol}`;
+    }
+
+    return "Hidden memory card";
+}
+
+function updateCardLabel(card) {
+    card.setAttribute("aria-label", getCardLabel(card));
 }
 
 function createCard(symbol, index) {
@@ -111,6 +148,7 @@ function resetTurn() {
 
 function flipCard(card) {
     card.classList.add("flipped");
+    updateCardLabel(card);
 }
 
 function unflipCards(session) {
@@ -121,6 +159,9 @@ function unflipCards(session) {
 
         firstCard.classList.remove("flipped");
         secondCard.classList.remove("flipped");
+
+        updateCardLabel(firstCard);
+        updateCardLabel(secondCard);
 
         mismatchTimer = null;
         resetTurn();
@@ -134,6 +175,9 @@ function handleMatch() {
 
     firstCard.classList.add("matched");
     secondCard.classList.add("matched");
+
+    updateCardLabel(firstCard);
+    updateCardLabel(secondCard);
 
     matchedPairs++;
     resetTurn();
@@ -160,6 +204,7 @@ function handleCardClick(card) {
     if (!gameStarted) {
         gameStarted = true;
         startTimer();
+        setGameStatus();
     }
 
     flipCard(card);
@@ -188,10 +233,20 @@ function finishGame() {
 
     const currentBest = Number(localStorage.getItem(STORAGE_KEY));
 
-    if (!Number.isFinite(currentBest) || currentBest <= 0 || moves < currentBest) {
+    const isNewBest =
+        !Number.isFinite(currentBest) ||
+        currentBest <= 0 ||
+        moves < currentBest;
+
+    if (isNewBest) {
         localStorage.setItem(STORAGE_KEY, String(moves));
         bestScore.textContent = `${moves} moves`;
+        setGameStatus(`NEW BEST ${moves} MOVES · ${formatTime(seconds)}`, "new-best");
+    } else {
+        setGameStatus(`CLEARED ${moves} MOVES · ${formatTime(seconds)}`, "win");
     }
+
+    gameStarted = false;
 }
 
 function startNewGame() {
@@ -199,7 +254,6 @@ function startNewGame() {
     clearMismatchTimer();
 
     gameSession++;
-
     firstCard = null;
     secondCard = null;
     lockBoard = false;
@@ -207,6 +261,9 @@ function startNewGame() {
     matchedPairs = 0;
     seconds = 0;
     gameStarted = false;
+
+    setGameStatus();
+    gameHint.textContent = "MATCH ALL PAIRS";
 
     updateScores();
     setupBoard();

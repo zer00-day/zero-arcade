@@ -12,6 +12,9 @@
     --blue: #3b82f6;
     --blue-soft: #edf4ff;
     --blue-border: #cfe0fb;
+    --success: #16803c;
+    --success-soft: #effaf2;
+    --success-border: #cfe9d8;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
 }
 
@@ -29,6 +32,9 @@ html[data-theme="dark"] {
     --blue: #5b9cff;
     --blue-soft: #17243a;
     --blue-border: #29466f;
+    --success: #5ed58a;
+    --success-soft: #15271d;
+    --success-border: #285237;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
 }
 
@@ -217,8 +223,44 @@ a {
     line-height: 1.5;
 }
 
+.game-hint {
+    margin-top: 18px;
+    color: var(--soft);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+    text-align: center;
+}
+
+.game-status {
+    min-height: 18px;
+    margin-top: 6px;
+    color: transparent;
+    font-size: 8px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    line-height: 18px;
+    text-align: center;
+    transition:
+        color 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.game-status.visible {
+    color: var(--muted);
+}
+
+.game-status.win {
+    color: var(--success);
+}
+
+.game-status.new-best {
+    color: var(--blue);
+}
+
 .game-board {
-    margin-top: 28px;
+    margin-top: 18px;
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
@@ -239,7 +281,8 @@ a {
     perspective: 700px;
     transition:
         border-color 0.2s ease,
-        background 0.2s ease;
+        background 0.2s ease,
+        box-shadow 0.2s ease;
 }
 
 .memory-card:focus-visible {
@@ -298,10 +341,15 @@ a {
         color 0.2s ease;
 }
 
+.memory-card.matched {
+    cursor: default;
+}
+
 .memory-card.matched .memory-card-back {
     background: var(--background);
     border-color: var(--border);
     color: var(--text);
+    box-shadow: inset 0 0 0 1px var(--success-border);
 }
 
 .memory-card:not(.flipped):not(.matched):hover .memory-card-front {
@@ -389,6 +437,11 @@ html[data-theme="dark"] .restart-button:hover {
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
+.restart-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
 .restart-button:active {
     transform: scale(0.995);
     box-shadow: none;
@@ -411,7 +464,6 @@ html[data-theme="dark"] .restart-button:hover {
         opacity: 0;
         transform: translateY(10px);
     }
-
     to {
         opacity: 1;
         transform: translateY(0);
@@ -437,7 +489,7 @@ html[data-theme="dark"] .restart-button:hover {
     }
 
     .game-board {
-        margin-top: 24px;
+        margin-top: 17px;
         gap: 8px;
     }
 
@@ -481,7 +533,7 @@ html[data-theme="dark"] .restart-button:hover {
     }
 
     .game-board {
-        margin-top: 21px;
+        margin-top: 16px;
         gap: 7px;
     }
 

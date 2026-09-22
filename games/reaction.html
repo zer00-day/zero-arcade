@@ -10,7 +10,7 @@
 <body>
     <main class="arcade-page">
         <header class="arcade-header">
-            <a class="back-link" href="../index.html">
+            <a class="back-link" href="../index.html" aria-label="Back to Arcade">
                 <span class="back-arrow">↙</span>
                 <span>ARCADE</span>
             </a>
@@ -38,14 +38,18 @@
                     </div>
                 </div>
 
-                <button 
-                    class="game-area" 
-                    id="gameArea" 
-                    type="button" 
+                <button
+                    class="game-area"
+                    id="gameArea"
+                    type="button"
                     aria-label="Start Reaction Test"
                 >
                     <span class="game-message" id="gameMessage">START</span>
                 </button>
+
+                <div class="game-hint" id="gameHint">CLICK WHEN BLUE</div>
+
+                <div class="game-status" id="gameStatus" aria-live="polite"></div>
 
                 <div class="score-panel">
                     <div class="score-item">
