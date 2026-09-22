@@ -243,7 +243,7 @@ function finishGame() {
         bestScore.textContent = moves;
 
         setGameStatus(
-            `NEW BEST ${moves} MOVES · ${formatTime(seconds)}`,
+            `NEW BEST ${moves}`,
             "new-best"
         );
     } else {
