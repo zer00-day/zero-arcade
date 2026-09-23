@@ -1,16 +1,23 @@
 const gameArea = document.getElementById("gameArea");
+
 const gameMessage = document.getElementById("gameMessage");
-const gameHint = document.getElementById("gameHint");
+
 const gameStatus = document.getElementById("gameStatus");
+
 const reactionScore = document.getElementById("reactionScore");
+
 const bestScore = document.getElementById("bestScore");
 
 let gameState = "idle";
+
 let startTime = 0;
+
 let timer = null;
+
 let gameSession = 0;
 
 const STORAGE_KEY = "zero-arcade-best-reaction";
+
 const savedBest = Number(localStorage.getItem(STORAGE_KEY));
 
 if (Number.isFinite(savedBest) && savedBest > 0) {
@@ -19,6 +26,7 @@ if (Number.isFinite(savedBest) && savedBest > 0) {
 
 function setGameStatus(message = "", type = "") {
     gameStatus.textContent = message;
+
     gameStatus.className = "game-status";
 
     if (message) {
@@ -36,36 +44,31 @@ function setState(state) {
             background: "#fafaf8",
             borderColor: "#ddddda",
             color: "#101010",
-            message: "START",
-            hint: "CLICK TO START"
+            message: "START"
         },
         waiting: {
             background: "#101010",
             borderColor: "#101010",
             color: "#ffffff",
-            message: "WAIT",
-            hint: "WAIT FOR BLUE"
+            message: "WAIT"
         },
         ready: {
             background: "#3b82f6",
             borderColor: "#3b82f6",
             color: "#ffffff",
-            message: "CLICK",
-            hint: "CLICK NOW"
+            message: "CLICK"
         },
         tooSoon: {
             background: "#fff1f1",
             borderColor: "#ef4444",
             color: "#101010",
-            message: "TOO SOON",
-            hint: "CLICK TO TRY AGAIN"
+            message: "TOO SOON"
         },
         result: {
             background: "#edf4ff",
             borderColor: "#3b82f6",
             color: "#101010",
-            message: "NICE",
-            hint: "CLICK TO PLAY AGAIN"
+            message: "NICE"
         }
     };
 
@@ -76,22 +79,29 @@ function setState(state) {
     }
 
     gameState = state;
+
     gameArea.style.background = current.background;
+
     gameArea.style.borderColor = current.borderColor;
+
     gameArea.style.color = current.color;
+
     gameMessage.textContent = current.message;
-    gameHint.textContent = current.hint;
 }
 
 function startGame() {
     clearTimeout(timer);
+
     gameSession += 1;
 
     const currentSession = gameSession;
 
     startTime = 0;
+
     reactionScore.textContent = "— ms";
+
     setGameStatus("");
+
     setState("waiting");
 
     const delay = Math.floor(Math.random() * 2500) + 1500;
@@ -102,6 +112,7 @@ function startGame() {
         }
 
         startTime = performance.now();
+
         setState("ready");
     }, delay);
 }
@@ -112,6 +123,7 @@ function finishGame() {
     }
 
     const reactionTime = Math.round(performance.now() - startTime);
+
     const currentBest = Number(localStorage.getItem(STORAGE_KEY));
 
     const isNewBest =
@@ -120,11 +132,14 @@ function finishGame() {
         reactionTime < currentBest;
 
     reactionScore.textContent = `${reactionTime} ms`;
+
     setState("result");
 
     if (isNewBest) {
         localStorage.setItem(STORAGE_KEY, String(reactionTime));
+
         bestScore.textContent = `${reactionTime} ms`;
+
         setGameStatus(`NEW BEST ${reactionTime} MS`);
     } else {
         setGameStatus(`REACTION ${reactionTime} MS`);
@@ -140,16 +155,23 @@ function handleGameClick() {
         gameState === "tooSoon"
     ) {
         startGame();
+
         return;
     }
 
     if (gameState === "waiting") {
         clearTimeout(timer);
+
         gameSession += 1;
+
         startTime = 0;
+
         reactionScore.textContent = "— ms";
+
         setState("tooSoon");
+
         setGameStatus("TOO SOON WAIT FOR BLUE", "danger");
+
         return;
     }
 

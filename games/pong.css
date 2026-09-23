@@ -1,4 +1,4 @@
-﻿:root {
+:root {
     --background: #f5f5f3;
     --card: #ffffff;
     --text: #101010;
@@ -7,14 +7,8 @@
     --border: #e6e6e3;
     --panel: #fafaf8;
     --panel-hover: #fdfdfb;
-    --cell-border: #ddddda;
-    --cell-hover-border: #cfcfcb;
     --blue: #3b82f6;
     --blue-soft: #edf4ff;
-    --blue-border: #cfe0fb;
-    --success: #16803c;
-    --success-soft: #effaf2;
-    --success-border: #cfe9d8;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
 }
 
@@ -27,14 +21,8 @@ html[data-theme="dark"] {
     --border: #292929;
     --panel: #191919;
     --panel-hover: #1d1d1d;
-    --cell-border: #333333;
-    --cell-hover-border: #414141;
     --blue: #5b9cff;
     --blue-soft: #17243a;
-    --blue-border: #29466f;
-    --success: #5ed58a;
-    --success-soft: #15271d;
-    --success-border: #285237;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
 }
 
@@ -72,6 +60,7 @@ html[data-theme="dark"] body {
 button,
 a {
     font: inherit;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .arcade-page {
@@ -108,6 +97,12 @@ a {
 .back-link:hover {
     color: var(--text);
     transform: translateX(-2px);
+}
+
+.back-link:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 4px;
+    border-radius: 4px;
 }
 
 .back-arrow {
@@ -172,7 +167,6 @@ a {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border);
-    transition: border-color 0.25s ease;
 }
 
 .game-category,
@@ -191,7 +185,7 @@ a {
 }
 
 .game-content {
-    padding: 34px;
+    padding: 30px;
 }
 
 .game-heading {
@@ -217,166 +211,61 @@ a {
 }
 
 .game-heading p {
-    margin-top: 9px;
+    margin-top: 8px;
     color: var(--muted);
     font-size: 13px;
     line-height: 1.5;
 }
 
-.game-hint {
-    margin-top: 18px;
-    color: var(--soft);
-    font-size: 7px;
-    font-weight: 800;
-    letter-spacing: 0.16em;
-    text-align: center;
+.pong-board-wrap {
+    width: 100%;
+    margin-top: 25px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    background: var(--panel);
+}
+
+#pongCanvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 8 / 5;
+    touch-action: none;
+    user-select: none;
 }
 
 .game-status {
-    min-height: 18px;
+    min-height: 16px;
     margin-top: 6px;
-    color: transparent;
-    font-size: 8px;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    line-height: 18px;
     text-align: center;
-    transition:
-        color 0.2s ease,
-        background 0.2s ease,
-        border-color 0.2s ease;
-}
-
-.game-status.visible {
     color: var(--muted);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.13em;
+    line-height: 1.4;
 }
 
 .game-status.win {
-    color: var(--success);
-}
-
-.game-status.new-best {
     color: var(--blue);
 }
 
-.game-board {
-    margin-top: 18px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 10px;
-}
-
-.memory-card {
-    position: relative;
-    width: 100%;
-    aspect-ratio: 1;
-    padding: 0;
-    border: 1px solid var(--cell-border);
-    border-radius: 15px;
-    background: var(--panel);
-    color: var(--text);
-    cursor: pointer;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-    perspective: 700px;
-    transition:
-        border-color 0.2s ease,
-        background 0.2s ease,
-        box-shadow 0.2s ease;
-}
-
-.memory-card:disabled {
-    cursor: default;
-}
-
-.memory-card:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
-}
-
-.memory-card-inner {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    display: block;
-    transform-style: preserve-3d;
-    transition: transform 0.35s ease;
-}
-
-.memory-card.flipped .memory-card-inner,
-.memory-card.matched .memory-card-inner {
-    transform: rotateY(180deg);
-}
-
-.memory-card-front,
-.memory-card-back {
-    position: absolute;
-    inset: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 14px;
-    backface-visibility: hidden;
-}
-
-.memory-card-front {
-    background: var(--panel);
-    border: 1px solid var(--cell-border);
-    color: var(--soft);
-    font-size: 9px;
-    font-weight: 800;
-    letter-spacing: 0.14em;
-    transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        color 0.2s ease;
-}
-
-.memory-card-back {
-    transform: rotateY(180deg);
-    background: var(--blue-soft);
-    border: 1px solid var(--blue-border);
-    color: var(--blue);
-    font-size: clamp(20px, 5vw, 27px);
-    font-weight: 800;
-    transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        color 0.2s ease;
-}
-
-.memory-card.matched {
-    cursor: default;
-}
-
-.memory-card.matched .memory-card-back {
-    background: var(--background);
-    border-color: var(--border);
-    color: var(--text);
-    box-shadow: inset 0 0 0 1px var(--success-border);
-}
-
-.memory-card:not(.flipped):not(.matched):hover .memory-card-front {
-    border-color: var(--cell-hover-border);
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.035);
-}
-
-html[data-theme="dark"] .memory-card:not(.flipped):not(.matched):hover .memory-card-front {
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+.game-status.lose {
+    color: var(--muted);
 }
 
 .score-panel {
-    margin-top: 16px;
+    margin-top: 12px;
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: 1fr 1fr;
     gap: 10px;
 }
 
 .score-item {
-    min-height: 70px;
-    padding: 14px 15px;
+    min-height: 64px;
+    padding: 12px 15px;
     border: 1px solid var(--border);
-    border-radius: 16px;
+    border-radius: 15px;
     background: var(--panel);
     display: flex;
     flex-direction: column;
@@ -387,7 +276,7 @@ html[data-theme="dark"] .memory-card:not(.flipped):not(.matched):hover .memory-c
 }
 
 .score-item:hover {
-    border-color: var(--cell-hover-border);
+    border-color: var(--border);
     background: var(--panel-hover);
 }
 
@@ -399,56 +288,100 @@ html[data-theme="dark"] .memory-card:not(.flipped):not(.matched):hover .memory-c
 }
 
 .score-item strong {
-    font-size: 16px;
+    font-size: 18px;
     font-weight: 800;
     letter-spacing: -0.03em;
 }
 
-.restart-button {
-    width: 100%;
-    min-height: 48px;
-    margin-top: 12px;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    background: #101010;
-    color: #ffffff;
-    cursor: pointer;
+.pong-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-top: 9px;
+    padding: 0 2px;
+    color: var(--soft);
     font-size: 8px;
     font-weight: 800;
-    letter-spacing: 0.18em;
+    letter-spacing: 0.14em;
+}
+
+.pong-meta strong {
+    color: var(--text);
+    font-size: 9px;
+    letter-spacing: 0;
+}
+
+.pong-controls {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+    width: min(100%, 220px);
+    margin: 12px auto 0;
+}
+
+.pong-controls[hidden] {
+    display: none;
+}
+
+.control-button {
+    min-height: 50px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 19px;
+    font-weight: 800;
+    cursor: pointer;
+    touch-action: none;
+    user-select: none;
     transition:
         background 0.2s ease,
         border-color 0.2s ease,
-        color 0.2s ease,
-        transform 0.15s ease,
-        box-shadow 0.2s ease;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
+        transform 0.1s ease;
 }
 
-html[data-theme="dark"] .restart-button {
-    background: #f5f5f3;
-    color: #101010;
+.control-button:hover {
+    border-color: var(--blue);
+    background: var(--panel-hover);
+}
+
+.control-button.control-active {
+    border-color: var(--blue);
+    background: var(--blue-soft);
+    transform: scale(0.97);
+}
+
+.restart-button {
+    width: 100%;
+    min-height: 46px;
+    margin-top: 12px;
+    border: 1px solid var(--text);
+    border-radius: 13px;
+    background: var(--text);
+    color: var(--card);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    cursor: pointer;
+    transition:
+        transform 0.15s ease,
+        opacity 0.2s ease;
 }
 
 .restart-button:hover {
-    background: #1c1c1c;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-}
-
-html[data-theme="dark"] .restart-button:hover {
-    background: #ffffff;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
-
-.restart-button:focus-visible {
-    outline: 2px solid var(--blue);
-    outline-offset: 2px;
+    opacity: 0.88;
 }
 
 .restart-button:active {
-    transform: scale(0.995);
-    box-shadow: none;
+    transform: scale(0.98);
+}
+
+.control-button:focus-visible,
+.restart-button:focus-visible,
+.back-link:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
 }
 
 .arcade-footer {
@@ -460,7 +393,6 @@ html[data-theme="dark"] .restart-button:hover {
     font-size: 7px;
     font-weight: 700;
     letter-spacing: 0.15em;
-    transition: color 0.25s ease;
 }
 
 @keyframes card-enter {
@@ -478,7 +410,7 @@ html[data-theme="dark"] .restart-button:hover {
 @media (max-width: 520px) {
     .arcade-page {
         width: min(100% - 24px, 620px);
-        padding-top: 22px;
+        padding-top: 24px;
     }
 
     .game-card {
@@ -486,33 +418,44 @@ html[data-theme="dark"] .restart-button:hover {
     }
 
     .game-content {
-        padding: 27px;
+        padding: 25px;
     }
 
     .game-heading {
         gap: 11px;
     }
 
-    .game-board {
-        margin-top: 17px;
-        gap: 8px;
+    .pong-board-wrap {
+        margin-top: 22px;
+        border-radius: 17px;
     }
 
-    .memory-card,
-    .memory-card-front,
-    .memory-card-back {
-        border-radius: 13px;
+    .score-panel {
+        gap: 9px;
+    }
+
+    .score-item {
+        min-height: 62px;
+        padding: 12px 13px;
     }
 }
 
 @media (max-width: 380px) {
     .arcade-page {
         width: calc(100% - 20px);
-        padding-top: 18px;
+        padding-top: 20px;
     }
 
     .arcade-header {
-        padding-bottom: 16px;
+        padding-bottom: 17px;
+    }
+
+    .back-link {
+        gap: 6px;
+    }
+
+    .back-arrow {
+        font-size: 13px;
     }
 
     .game-top {
@@ -521,7 +464,7 @@ html[data-theme="dark"] .restart-button:hover {
     }
 
     .game-content {
-        padding: 23px;
+        padding: 22px;
     }
 
     .game-heading {
@@ -537,49 +480,66 @@ html[data-theme="dark"] .restart-button:hover {
         font-size: 27px;
     }
 
-    .game-board {
-        margin-top: 16px;
-        gap: 7px;
-    }
-
-    .memory-card,
-    .memory-card-front,
-    .memory-card-back {
-        border-radius: 11px;
+    .pong-board-wrap {
+        margin-top: 20px;
+        border-radius: 16px;
     }
 
     .score-panel {
-        gap: 7px;
+        gap: 8px;
     }
 
     .score-item {
-        min-height: 66px;
-        padding: 12px;
+        min-height: 60px;
+        padding: 11px 12px;
     }
 
-    .score-item strong {
-        font-size: 14px;
+    .pong-meta {
+        margin-top: 8px;
+    }
+
+    .pong-controls {
+        width: min(100%, 230px);
+        gap: 7px;
+        margin-top: 12px;
+    }
+
+    .control-button {
+        min-height: 50px;
+        border-radius: 13px;
+        font-size: 19px;
     }
 
     .restart-button {
-        min-height: 46px;
+        min-height: 44px;
+        margin-top: 12px;
+    }
+
+    .arcade-footer {
+        font-size: 8px;
     }
 }
 
 @media (max-width: 340px) {
     .game-content {
-        padding: 20px;
+        padding: 19px;
     }
 
-    .game-board {
-        gap: 6px;
+    .game-heading p {
+        font-size: 11px;
     }
 
-    .score-panel {
-        grid-template-columns: 1fr 1fr;
+    .pong-controls {
+        width: 100%;
     }
+}
 
-    .score-item:last-child {
-        grid-column: span 2;
+@media (prefers-reduced-motion: reduce) {
+    .game-card,
+    .back-link,
+    .control-button,
+    .restart-button {
+        animation: none;
+        transition: none;
     }
 }

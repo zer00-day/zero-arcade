@@ -326,7 +326,11 @@ html[data-theme="dark"] .game-board {
     -webkit-tap-highlight-color: transparent;
 }
 
-.mine-cell:hover {
+.mine-cell:disabled {
+    cursor: default;
+}
+
+.mine-cell:hover:not(:disabled) {
     border-color: var(--soft);
     background: var(--cell-hover);
 }
@@ -336,7 +340,7 @@ html[data-theme="dark"] .game-board {
     outline-offset: -2px;
 }
 
-.mine-cell:active {
+.mine-cell:active:not(:disabled) {
     transform: scale(0.94);
 }
 

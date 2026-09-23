@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3">
+    <title>Zero Arcade — Pong</title>
+    <link rel="stylesheet" href="pong.css">
+</head>
+<body>
+    <main class="arcade-page">
+        <header class="arcade-header">
+            <a class="back-link" href="../index.html" aria-label="Back to Arcade">
+                <span class="back-arrow">↙</span>
+                <span>ARCADE</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <span class="status">07 / 07</span>
+        </header>
+
+        <section class="game-card" aria-label="Pong">
+            <div class="game-top">
+                <span class="game-category">MINI GAME 07</span>
+                <span class="game-type">PONG</span>
+            </div>
+
+            <div class="game-content">
+                <div class="game-heading">
+                    <span class="game-number">07</span>
+                    <div>
+                        <h1>Pong</h1>
+                        <p>Classic paddle battle.</p>
+                    </div>
+                </div>
+
+                <div class="pong-board-wrap">
+                    <canvas id="pongCanvas" width="800" height="500" aria-label="Pong game board"></canvas>
+                </div>
+
+                <div class="game-status" id="gameStatus" aria-live="polite"></div>
+
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span>YOU</span>
+                        <strong id="playerScore">0</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>AI</span>
+                        <strong id="aiScore">0</strong>
+                    </div>
+                </div>
+
+                <div class="pong-meta">
+                    <span>TARGET <strong>5</strong></span>
+                    <span>SPEED <strong id="speedValue">1.0x</strong></span>
+                </div>
+
+                <div class="pong-controls" aria-label="Pong controls">
+                    <button class="control-button" id="upButton" type="button" aria-label="Move paddle up">↑</button>
+                    <button class="control-button" id="downButton" type="button" aria-label="Move paddle down">↓</button>
+                </div>
+
+                <button class="restart-button" id="newGameButton" type="button" aria-label="Start Pong game">START GAME</button>
+            </div>
+        </section>
+
+        <footer class="arcade-footer">
+            <span>ZERO ARCADE</span>
+            <span>PONG</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="pong.js"></script>
+</body>
+</html>

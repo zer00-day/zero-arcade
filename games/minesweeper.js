@@ -25,6 +25,7 @@ let bestScore = Number(localStorage.getItem(STORAGE_KEY)) || 0;
 function formatTime(seconds) {
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = seconds % 60;
+
     return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
 }
 
@@ -97,7 +98,7 @@ function getNeighbors(row, column) {
 function placeMines(safeRow, safeColumn) {
     const safeCells = new Set();
 
-    getNeighbors(safeRow, safeColumn).forEach(cell => {
+    getNeighbors(safeRow, safeColumn).forEach((cell) => {
         safeCells.add(`${cell.row}-${cell.column}`);
     });
 
@@ -122,14 +123,14 @@ function placeMines(safeRow, safeColumn) {
         ];
     }
 
-    availableCells.slice(0, MINE_COUNT).forEach(cell => {
+    availableCells.slice(0, MINE_COUNT).forEach((cell) => {
         cell.mine = true;
     });
 
     for (const row of board) {
         for (const cell of row) {
             cell.adjacent = getNeighbors(cell.row, cell.column)
-                .filter(neighbor => neighbor.mine)
+                .filter((neighbor) => neighbor.mine)
                 .length;
         }
     }
@@ -166,6 +167,7 @@ function renderBoard() {
             button.className = "mine-cell";
             button.dataset.row = cell.row;
             button.dataset.column = cell.column;
+            button.disabled = !gameStarted;
             button.setAttribute("aria-label", getCellLabel(cell));
 
             if (cell.flagged) {
@@ -212,19 +214,12 @@ function clearLongPressTimer() {
 }
 
 function revealCell(cell) {
-    if (
-        gameOver ||
-        cell.revealed ||
-        cell.flagged
-    ) {
+    if (!gameStarted || gameOver || cell.revealed || cell.flagged) {
         return;
     }
 
-    if (!gameStarted) {
+    if (!board.some((row) => row.some((boardCell) => boardCell.mine))) {
         placeMines(cell.row, cell.column);
-        gameStarted = true;
-        startTimer();
-        setGameStatus();
     }
 
     cell.revealed = true;
@@ -236,12 +231,8 @@ function revealCell(cell) {
     }
 
     if (cell.adjacent === 0) {
-        getNeighbors(cell.row, cell.column).forEach(neighbor => {
-            if (
-                !neighbor.revealed &&
-                !neighbor.flagged &&
-                !neighbor.mine
-            ) {
+        getNeighbors(cell.row, cell.column).forEach((neighbor) => {
+            if (!neighbor.revealed && !neighbor.flagged && !neighbor.mine) {
                 revealCell(neighbor);
             }
         });
@@ -265,7 +256,7 @@ function revealAllMines(explodedCell = null) {
     if (explodedCell) {
         const cells = gameBoard.querySelectorAll(".mine-cell");
 
-        cells.forEach(button => {
+        cells.forEach((button) => {
             const row = Number(button.dataset.row);
             const column = Number(button.dataset.column);
 
@@ -331,10 +322,7 @@ function checkWin() {
 }
 
 function toggleFlag(cell) {
-    if (
-        gameOver ||
-        cell.revealed
-    ) {
+    if (!gameStarted || gameOver || cell.revealed) {
         return;
     }
 
@@ -404,7 +392,7 @@ function handleContextMenu(event) {
 function handleTouchStart(event) {
     const cell = getCellFromTarget(event.target);
 
-    if (!cell || gameOver) {
+    if (!cell || !gameStarted || gameOver) {
         return;
     }
 
@@ -426,6 +414,22 @@ function handleTouchMove() {
     clearLongPressTimer();
 }
 
+function startGame() {
+    if (gameStarted || gameOver) {
+        return;
+    }
+
+    gameStarted = true;
+    gameOver = false;
+
+    restartButton.textContent = "NEW GAME";
+    gameHint.textContent = "FLAG: RIGHT CLICK / HOLD";
+
+    setGameStatus();
+    renderBoard();
+    startTimer();
+}
+
 function startNewGame() {
     stopTimer();
     clearLongPressTimer();
@@ -440,12 +444,22 @@ function startNewGame() {
     createEmptyBoard();
     updateScore();
     setGameStatus();
-    renderBoard();
 
+    restartButton.textContent = "START GAME";
     gameHint.textContent = "FLAG: RIGHT CLICK / HOLD";
+
+    renderBoard();
 }
 
-restartButton.addEventListener("click", startNewGame);
+restartButton.addEventListener("click", () => {
+    if (gameStarted || gameOver) {
+        startNewGame();
+        return;
+    }
+
+    startGame();
+});
+
 gameBoard.addEventListener("click", handleBoardClick);
 gameBoard.addEventListener("contextmenu", handleContextMenu);
 gameBoard.addEventListener("touchstart", handleTouchStart, { passive: true });

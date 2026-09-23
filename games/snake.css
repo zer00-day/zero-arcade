@@ -330,6 +330,10 @@ html[data-theme="dark"] .game-board {
     gap: 9px;
 }
 
+.snake-controls[hidden] {
+    display: none !important;
+}
+
 .control-button {
     min-width: 0;
     min-height: 64px;

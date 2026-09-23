@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3">
+    <title>Zero Arcade — Flappy Zero</title>
+    <link rel="stylesheet" href="flappy.css">
+</head>
+<body>
+    <main class="arcade-page">
+        <header class="arcade-header">
+            <a class="back-link" href="../index.html" aria-label="Back to Arcade">
+                <span class="back-arrow">↙</span>
+                <span>ARCADE</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <span class="status">07 / 07</span>
+        </header>
+
+        <section class="game-card" aria-label="Flappy Zero">
+            <div class="game-top">
+                <span class="game-category">MINI GAME 07</span>
+                <span class="game-type">FLAPPY ZERO</span>
+            </div>
+
+            <div class="game-content">
+                <div class="game-heading">
+                    <span class="game-number">07</span>
+                    <div>
+                        <h1>Flappy Zero</h1>
+                        <p>Keep flying. Don't hit the pipes.</p>
+                    </div>
+                </div>
+
+                <div class="game-area" id="gameArea">
+                    <canvas id="gameCanvas" aria-label="Flappy Zero game"></canvas>
+
+                    <div class="game-overlay" id="gameOverlay">
+                        <span class="overlay-label" id="overlayLabel">READY</span>
+                        <span class="overlay-text" id="overlayText">Press Space or use the touch control.</span>
+                    </div>
+                </div>
+
+                <div class="touch-control-wrap" id="touchControlWrap">
+                    <button class="touch-control" id="touchControl" type="button" aria-label="Flap">
+                        <span>FLAP</span>
+                    </button>
+                </div>
+
+                <div class="game-status" id="gameStatus" aria-live="polite"></div>
+
+                <div class="score-panel">
+                    <div class="score-item">
+                        <span>SCORE</span>
+                        <strong id="scoreValue">0</strong>
+                    </div>
+
+                    <div class="score-item">
+                        <span>BEST</span>
+                        <strong id="bestValue">0</strong>
+                    </div>
+                </div>
+
+                <button class="restart-button" id="gameButton" type="button" aria-label="Start Flappy Zero game">START GAME</button>
+            </div>
+        </section>
+
+        <footer class="arcade-footer">
+            <span>ZERO ARCADE</span>
+            <span>FLAPPY ZERO</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="flappy.js"></script>
+</body>
+</html>

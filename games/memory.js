@@ -117,6 +117,7 @@ function createCard(symbol, index) {
     card.type = "button";
     card.dataset.symbol = symbol;
     card.dataset.index = index;
+    card.disabled = !gameStarted;
     card.setAttribute("aria-label", "Hidden memory card");
 
     card.innerHTML = `
@@ -137,6 +138,12 @@ function setupBoard() {
 
     cards.forEach((symbol, index) => {
         gameBoard.appendChild(createCard(symbol, index));
+    });
+}
+
+function setCardsEnabled(enabled) {
+    cards.forEach((card) => {
+        card.disabled = !enabled;
     });
 }
 
@@ -193,18 +200,13 @@ function handleMismatch() {
 
 function handleCardClick(card) {
     if (
+        !gameStarted ||
         lockBoard ||
         card === firstCard ||
         card.classList.contains("matched") ||
         card.classList.contains("flipped")
     ) {
         return;
-    }
-
-    if (!gameStarted) {
-        gameStarted = true;
-        startTimer();
-        setGameStatus();
     }
 
     flipCard(card);
@@ -254,9 +256,33 @@ function finishGame() {
     }
 
     gameStarted = false;
+    setCardsEnabled(false);
 }
 
 function startNewGame() {
+    stopTimer();
+    clearMismatchTimer();
+
+    gameSession++;
+    firstCard = null;
+    secondCard = null;
+    lockBoard = false;
+    moves = 0;
+    matchedPairs = 0;
+    seconds = 0;
+    gameStarted = true;
+
+    setGameStatus();
+    gameHint.textContent = "MATCH ALL PAIRS";
+    updateScores();
+    setupBoard();
+
+    restartButton.textContent = "NEW GAME";
+    setCardsEnabled(true);
+    startTimer();
+}
+
+function initializeGame() {
     stopTimer();
     clearMismatchTimer();
 
@@ -271,11 +297,20 @@ function startNewGame() {
 
     setGameStatus();
     gameHint.textContent = "MATCH ALL PAIRS";
-
     updateScores();
     setupBoard();
+
+    restartButton.textContent = "START GAME";
+    setCardsEnabled(false);
 }
 
-restartButton.addEventListener("click", startNewGame);
+restartButton.addEventListener("click", () => {
+    if (gameStarted) {
+        startNewGame();
+        return;
+    }
 
-startNewGame();
+    startNewGame();
+});
+
+initializeGame();
