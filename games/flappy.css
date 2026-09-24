@@ -7,6 +7,7 @@
     --border: #e6e6e3;
     --panel: #fafaf8;
     --panel-hover: #fdfdfb;
+    --blue: #3b82f6;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
 }
 
@@ -178,7 +179,7 @@ button {
 }
 
 .game-type {
-    color: var(--text);
+    color: var(--blue);
 }
 
 .game-content {
@@ -222,9 +223,22 @@ button {
     border: 1px solid var(--border);
     border-radius: 18px;
     background: var(--panel);
-    aspect-ratio: 8 / 5;
+    aspect-ratio: 4 / 3;
     touch-action: none;
     user-select: none;
+    isolation: isolate;
+    transition:
+        border-color 0.25s ease,
+        background 0.25s ease;
+}
+
+.game-area::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    border-radius: inherit;
 }
 
 #gameCanvas {
@@ -238,33 +252,23 @@ button {
 .game-overlay {
     position: absolute;
     inset: 0;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-    pointer-events: none;
-    text-align: center;
-    transition: opacity 0.2s ease;
-}
-
-.game-overlay.is-hidden {
+    z-index: 3;
+    background: rgba(128, 128, 128, 0.16);
     opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+        opacity 0.24s ease,
+        visibility 0.24s ease;
 }
 
-.overlay-label {
-    color: var(--text);
-    font-size: 13px;
-    font-weight: 900;
-    letter-spacing: 0.18em;
+html[data-theme="dark"] .game-overlay {
+    background: rgba(180, 180, 180, 0.13);
 }
 
-.overlay-text {
-    max-width: 230px;
-    margin-top: 8px;
-    color: var(--muted);
-    font-size: 11px;
-    line-height: 1.5;
+.game-overlay.is-game-over {
+    opacity: 1;
+    visibility: visible;
 }
 
 .touch-control-wrap {
@@ -274,15 +278,16 @@ button {
 }
 
 .touch-control-wrap.is-visible {
-    display: block;
+    display: flex;
+    justify-content: center;
 }
 
 .touch-control {
-    width: min(100%, 230px);
-    min-height: 54px;
-    margin: 0 auto;
+    width: 150px;
+    min-height: 58px;
+    padding: 0 24px;
     border: 1px solid var(--border);
-    border-radius: 14px;
+    border-radius: 15px;
     background: var(--panel);
     color: var(--text);
     font-size: 8px;
@@ -291,15 +296,15 @@ button {
     cursor: pointer;
     touch-action: manipulation;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: none;
+    outline: none;
     transition:
         background 0.15s ease,
         border-color 0.15s ease,
         transform 0.1s ease;
-}
-
-.touch-control:hover {
-    border-color: var(--text);
-    background: var(--panel-hover);
 }
 
 .touch-control.control-active {
@@ -323,10 +328,19 @@ button {
     font-weight: 800;
     letter-spacing: 0.13em;
     line-height: 1.4;
+    opacity: 1;
+    transform: translateY(0);
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
 }
 
 .game-status.best {
     color: var(--text);
+}
+
+.game-status.status-pop {
+    animation: status-pop 0.28s ease both;
 }
 
 .score-panel {
@@ -347,11 +361,12 @@ button {
     justify-content: space-between;
     transition:
         border-color 0.2s ease,
-        background 0.2s ease;
+        background 0.2s ease,
+        transform 0.18s ease;
 }
 
-.score-item:hover {
-    background: var(--panel-hover);
+.score-item.score-pop {
+    animation: score-pop 0.25s ease both;
 }
 
 .score-item span {
@@ -370,7 +385,9 @@ button {
 .restart-button {
     width: 100%;
     min-height: 46px;
+    max-height: 46px;
     margin-top: 12px;
+    padding: 0 16px;
     border: 1px solid var(--text);
     border-radius: 13px;
     background: var(--text);
@@ -380,8 +397,13 @@ button {
     letter-spacing: 0.1em;
     cursor: pointer;
     transition:
+        opacity 0.2s ease,
         transform 0.15s ease,
-        opacity 0.2s ease;
+        max-height 0.2s ease,
+        margin 0.2s ease,
+        min-height 0.2s ease,
+        border-width 0.2s ease,
+        padding 0.2s ease;
 }
 
 .restart-button:hover {
@@ -395,6 +417,23 @@ button {
 .restart-button:focus-visible {
     outline: 2px solid var(--text);
     outline-offset: 3px;
+}
+
+.restart-button.is-hidden {
+    min-height: 0;
+    max-height: 0;
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    opacity: 0;
+    transform: translateY(-5px);
+    pointer-events: none;
+    overflow: hidden;
+}
+
+.game-content:has(.restart-button.is-hidden) {
+    padding-bottom: 16px;
 }
 
 .arcade-footer {
@@ -420,6 +459,43 @@ button {
     }
 }
 
+@keyframes score-pop {
+    0% {
+        transform: scale(1);
+    }
+
+    45% {
+        transform: scale(1.018);
+    }
+
+    100% {
+        transform: scale(1);
+    }
+}
+
+@keyframes status-pop {
+    0% {
+        opacity: 0;
+        transform: translateY(3px);
+    }
+
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .touch-control:hover {
+        border-color: var(--text);
+        background: var(--panel-hover);
+    }
+
+    .score-item:hover {
+        background: var(--panel-hover);
+    }
+}
+
 @media (max-width: 520px) {
     .arcade-page {
         width: min(100% - 24px, 620px);
@@ -441,6 +517,7 @@ button {
     .game-area {
         margin-top: 22px;
         border-radius: 17px;
+        aspect-ratio: 4 / 3.2;
     }
 
     .score-panel {
@@ -453,7 +530,8 @@ button {
     }
 
     .touch-control {
-        min-height: 54px;
+        width: 150px;
+        min-height: 58px;
     }
 }
 
@@ -500,6 +578,7 @@ button {
     .game-area {
         margin-top: 20px;
         border-radius: 16px;
+        aspect-ratio: 4 / 3.25;
     }
 
     .score-panel {
@@ -516,12 +595,14 @@ button {
     }
 
     .touch-control {
-        min-height: 52px;
-        border-radius: 13px;
+        width: 145px;
+        min-height: 56px;
+        border-radius: 14px;
     }
 
     .restart-button {
         min-height: 44px;
+        max-height: 44px;
         margin-top: 12px;
     }
 
@@ -540,16 +621,19 @@ button {
     }
 
     .touch-control {
-        width: 100%;
+        width: 140px;
+        min-height: 54px;
     }
 }
 
 @media (prefers-reduced-motion: reduce) {
     .game-card,
     .back-link,
+    .game-overlay,
     .touch-control,
     .restart-button,
-    .game-overlay {
+    .game-status,
+    .score-item {
         animation: none;
         transition: none;
     }
