@@ -1,7 +1,11 @@
 ﻿const themeToggle = document.getElementById("themeToggle");
 const themeToggleIcon = document.getElementById("themeToggleIcon");
 const themeColorMeta = document.getElementById("themeColorMeta");
+const logoutButton = document.getElementById("logoutButton");
+const arcadePage = document.querySelector(".arcade-page");
+
 const THEME_KEY = "zero-arcade-theme";
+const ACCESS_KEY = "zero-arcade-access";
 
 function applyTheme(theme) {
     const isDark = theme === "dark";
@@ -52,11 +56,33 @@ function toggleTheme() {
     applyTheme(nextTheme);
 }
 
+function handleLogout() {
+    if (!logoutButton) {
+        return;
+    }
+
+    logoutButton.classList.add("is-logging-out");
+    arcadePage?.classList.add("is-logging-out");
+
+    sessionStorage.removeItem(ACCESS_KEY);
+
+    window.setTimeout(() => {
+        window.location.replace("login.html");
+    }, 350);
+}
+
 applyTheme(getInitialTheme());
 
 if (themeToggle) {
     themeToggle.addEventListener(
         "click",
         toggleTheme
+    );
+}
+
+if (logoutButton) {
+    logoutButton.addEventListener(
+        "click",
+        handleLogout
     );
 }

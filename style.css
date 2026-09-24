@@ -151,6 +151,49 @@ a {
     letter-spacing: 0.15em;
 }
 
+.logout-button {
+    min-height: 28px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        transform 0.15s ease,
+        opacity 0.25s ease;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+}
+
+.logout-button:hover {
+    border-color: var(--soft);
+    background: var(--item);
+    color: var(--text);
+}
+
+.logout-button:active {
+    transform: scale(0.96);
+}
+
+.logout-button.is-logging-out {
+    pointer-events: none;
+    opacity: 0.45;
+    transform: scale(0.97);
+}
+
+.arcade-page.is-logging-out .hub-card,
+.arcade-page.is-logging-out .arcade-header,
+.arcade-page.is-logging-out .arcade-footer {
+    animation: arcade-logout 0.35s ease both;
+}
+
 .hub-card {
     overflow: hidden;
     border: 1px solid var(--border);
@@ -370,6 +413,18 @@ html[data-theme="dark"] .watermark {
     }
 }
 
+@keyframes arcade-logout {
+    from {
+        opacity: 1;
+        transform: translateY(0);
+    }
+
+    to {
+        opacity: 0;
+        transform: translateY(-5px);
+    }
+}
+
 @media (max-width: 520px) {
     .arcade-page {
         width: min(100% - 24px, 620px);
@@ -411,16 +466,18 @@ html[data-theme="dark"] .watermark {
     }
 
     .header-actions {
-        gap: 6px;
+        gap: 5px;
     }
 
     .theme-toggle {
-        width: 36px;
+        width: 34px;
         height: 27px;
     }
 
-    .status {
-        padding: 0 8px;
+    .status,
+    .logout-button {
+        padding: 0 7px;
+        font-size: 7px;
     }
 
     .hub-top {
@@ -481,6 +538,21 @@ html[data-theme="dark"] .watermark {
 }
 
 @media (max-width: 340px) {
+    .header-actions {
+        gap: 4px;
+    }
+
+    .theme-toggle {
+        width: 32px;
+    }
+
+    .status,
+    .logout-button {
+        padding: 0 6px;
+        font-size: 6.5px;
+        letter-spacing: 0.12em;
+    }
+
     .hub-content {
         padding: 20px;
     }
