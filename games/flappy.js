@@ -1,48 +1,15 @@
-const gameArea = document.getElementById("gameArea");
 const canvas = document.getElementById("gameCanvas");
-const ctx = canvas.getContext("2d");
+const gameArea = document.getElementById("gameArea");
+const gameOverlay = document.getElementById("gameOverlay");
 const gameButton = document.getElementById("gameButton");
 const touchControlWrap = document.getElementById("touchControlWrap");
 const touchControl = document.getElementById("touchControl");
-const gameStatus = document.getElementById("gameStatus");
 const scoreValue = document.getElementById("scoreValue");
 const bestValue = document.getElementById("bestValue");
+const gameStatus = document.getElementById("gameStatus");
 const scoreItem = document.getElementById("scoreItem");
-const gameOverlay = document.getElementById("gameOverlay");
-const BEST_KEY = "zero-arcade-flappy-best";
-
-const FIXED_STEP = 1000 / 60;
-const MAX_FRAME_TIME = 100;
-const MAX_STEPS = 5;
-
-let width = 0;
-let height = 0;
-let dpr = 1;
-let animationFrame = 0;
-let lastTime = 0;
-let accumulator = 0;
-let state = "idle";
-let score = 0;
-let best = Number(localStorage.getItem(BEST_KEY)) || 0;
-let pipeTimer = 0;
-let inputMode = "keyboard";
-let idleTime = 0;
-let touchFeedbackTimer = 0;
-let scoreAnimationTimer = 0;
-let previousPipeCenter = null;
-let previousPipeDirection = 0;
-let sameDirectionCount = 0;
-
-const bird = {
-    x: 0,
-    y: 0,
-    radius: 13,
-    velocity: 0,
-    rotation: 0,
-    flapTime: 0
-};
-
-const pipes = [];
+const context = canvas.getContext("2d");
+const STORAGE_KEY = "zero-arcade-flappy-best";
 
 const settings = {
     gravity: 0.00125,
@@ -60,254 +27,74 @@ const settings = {
     mobileMarginRatio: 0.12,
     mobileMinMargin: 24,
     maxDifficulty: 12,
-    minPipeCenterShift: 34,
-    maxPipeCenterShift: 82,
-    maxSameDirection: 2,
     firstPipeCenterRange: 34,
-    preferredFirstPipePosition: 0.45
+    preferredFirstPipePosition: 0.45,
+    recentPipeMemory: 3,
+    pipeCandidateCount: 30,
+    pipeRandomness: 0.9,
+    pipeNoveltyWeight: 1.45,
+    pipeMovementWeight: 0.9,
+    pipeVariationWeight: 0.55
 };
 
-bestValue.textContent = String(best);
+let width = 0;
+let height = 0;
+let scale = 1;
+let animationFrame = null;
+let lastTime = 0;
+let pipeTimer = 0;
+let firstPipeTimer = 0;
+let score = 0;
+let best = Number(localStorage.getItem(STORAGE_KEY)) || 0;
+let gameState = "ready";
+let bird = null;
+let pipes = [];
+let previousPipeCenter = null;
+let recentPipeCenters = [];
 
-function getCss(variable) {
-    return getComputedStyle(document.documentElement)
-        .getPropertyValue(variable)
-        .trim();
+bestValue.textContent = best;
+
+function clamp(value, min, max) {
+    return Math.min(Math.max(value, min), max);
 }
 
-function setInputMode(mode) {
-    if (inputMode === mode) {
-        return;
-    }
-
-    inputMode = mode;
-    touchControlWrap.classList.toggle("is-visible", mode === "touch");
+function lerp(a, b, amount) {
+    return a + (b - a) * amount;
 }
 
-function detectInitialInputMode() {
-    const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-    const touchCapable =
-        "ontouchstart" in window || navigator.maxTouchPoints > 0;
-
-    setInputMode(coarsePointer || touchCapable ? "touch" : "keyboard");
-}
-
-function resizeCanvas() {
-    const rect = gameArea.getBoundingClientRect();
-
-    width = Math.max(1, rect.width);
-    height = Math.max(1, rect.height);
-
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-
-    canvas.width = Math.round(width * dpr);
-    canvas.height = Math.round(height * dpr);
-
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-    bird.x = width * 0.25;
-
-    if (state !== "playing") {
-        bird.y = height * 0.45;
-        draw();
-    }
-}
-
-function updateButtonVisibility() {
-    gameButton.classList.toggle("is-hidden", state === "playing");
-}
-
-function updateGameOverOverlay() {
-    gameOverlay.classList.toggle("is-game-over", state === "over");
-}
-
-function resetScoreAnimation() {
-    if (scoreAnimationTimer) {
-        window.clearTimeout(scoreAnimationTimer);
-        scoreAnimationTimer = 0;
-    }
-
-    scoreItem.classList.remove("score-pop");
-}
-
-function animateScore() {
-    resetScoreAnimation();
-
-    void scoreItem.offsetWidth;
-
-    scoreItem.classList.add("score-pop");
-
-    scoreAnimationTimer = window.setTimeout(() => {
-        scoreItem.classList.remove("score-pop");
-        scoreAnimationTimer = 0;
-    }, 260);
-}
-
-function updateScoreDisplay() {
-    scoreValue.textContent = String(score);
-    animateScore();
-}
-
-function updateGameStatus(message, isBest = false) {
-    gameStatus.className = "game-status";
-    gameStatus.textContent = message;
-
-    if (isBest) {
-        gameStatus.classList.add("best");
-    }
-
-    if (message) {
-        void gameStatus.offsetWidth;
-        gameStatus.classList.add("status-pop");
-    }
-}
-
-function resetGame() {
-    cancelAnimationFrame(animationFrame);
-
-    state = "idle";
-    score = 0;
-    pipeTimer = 0;
-    accumulator = 0;
-    idleTime = 0;
-    previousPipeCenter = null;
-    previousPipeDirection = 0;
-    sameDirectionCount = 0;
-    pipes.length = 0;
-
-    bird.x = width * 0.25;
-    bird.y = height * 0.45;
-    bird.velocity = 0;
-    bird.rotation = 0;
-    bird.flapTime = 0;
-
-    scoreValue.textContent = "0";
-    updateGameStatus();
-    resetScoreAnimation();
-
-    gameButton.textContent = "START GAME";
-    gameButton.setAttribute("aria-label", "Start Flappy Zero game");
-
-    updateButtonVisibility();
-    updateGameOverOverlay();
-    draw();
-}
-
-function startGame() {
-    if (state === "playing") {
-        return;
-    }
-
-    cancelAnimationFrame(animationFrame);
-
-    state = "playing";
-    score = 0;
-    pipeTimer = 0;
-    accumulator = 0;
-    previousPipeCenter = null;
-    previousPipeDirection = 0;
-    sameDirectionCount = 0;
-    pipes.length = 0;
-
-    bird.x = width * 0.25;
-    bird.y = height * 0.45;
-    bird.velocity = 0;
-    bird.rotation = 0;
-    bird.flapTime = 0;
-
-    scoreValue.textContent = "0";
-    updateGameStatus();
-    resetScoreAnimation();
-    updateButtonVisibility();
-    updateGameOverOverlay();
-
-    flap();
-
-    lastTime = performance.now();
-    animationFrame = requestAnimationFrame(gameLoop);
-}
-
-function flap() {
-    if (state !== "playing") {
-        return;
-    }
-
-    bird.velocity = settings.flap;
-    bird.flapTime = 0.14;
-}
-
-function endGame() {
-    if (state !== "playing") {
-        return;
-    }
-
-    state = "over";
-    cancelAnimationFrame(animationFrame);
-
-    const isNewBest = score > best;
-
-    if (isNewBest) {
-        best = score;
-        localStorage.setItem(BEST_KEY, String(best));
-        bestValue.textContent = String(best);
-        updateGameStatus("NEW BEST", true);
-    } else {
-        updateGameStatus("GAME OVER");
-    }
-
-    gameButton.textContent = "START GAME";
-    gameButton.setAttribute("aria-label", "Start Flappy Zero game");
-
-    updateButtonVisibility();
-    updateGameOverOverlay();
-    draw();
+function randomBetween(min, max) {
+    return min + Math.random() * Math.max(0, max - min);
 }
 
 function getDifficulty() {
-    return Math.min(score / settings.maxDifficulty, 1);
+    return clamp(Math.floor(score / 5), 0, settings.maxDifficulty);
 }
 
-function getPipeGap() {
-    const difficulty = getDifficulty();
-    const difficultyGap = settings.pipeGap - difficulty * 10;
-    const mobileResponsiveGap = Math.max(
+function getResponsiveGap() {
+    if (!width || !height) {
+        return settings.pipeGap;
+    }
+
+    const isSmallArea = width <= 520;
+
+    if (!isSmallArea) {
+        return settings.pipeGap;
+    }
+
+    return Math.max(
         settings.mobileMinPipeGap,
-        height * settings.mobileGapRatio
+        Math.min(settings.pipeGap, height * settings.mobileGapRatio)
     );
-
-    return Math.min(
-        difficultyGap,
-        mobileResponsiveGap
-    );
-}
-
-function getPipeSpeed() {
-    const difficulty = getDifficulty();
-    return settings.pipeSpeed * (1 + difficulty * 0.16);
-}
-
-function getPipeInterval() {
-    const difficulty = getDifficulty();
-    return settings.pipeInterval - difficulty * 70;
 }
 
 function getPipeCenterLimits(gap) {
     const responsiveMargin = Math.max(
         settings.mobileMinMargin,
-        Math.min(
-            settings.minPipeTop,
-            height * settings.mobileMarginRatio
-        )
+        Math.min(settings.minPipeTop, height * settings.mobileMarginRatio)
     );
 
-    const minCenter =
-        responsiveMargin + gap * 0.5;
-
-    const maxCenter =
-        height -
-        settings.groundHeight -
-        responsiveMargin -
-        gap * 0.5;
+    const minCenter = responsiveMargin + gap * 0.5;
+    const maxCenter = height - settings.groundHeight - responsiveMargin - gap * 0.5;
 
     return {
         min: minCenter,
@@ -315,417 +102,711 @@ function getPipeCenterLimits(gap) {
     };
 }
 
-function clamp(value, min, max) {
-    return Math.max(min, Math.min(max, value));
+function getPipeMovementRange(limits) {
+    const range = Math.max(0, limits.max - limits.min);
+    const difficulty = getDifficulty();
+    const minimumRatio = 0.07 + difficulty * 0.0015;
+    const maximumRatio = 0.42 + difficulty * 0.008;
+
+    const minimum = Math.min(
+        range * minimumRatio,
+        range * 0.16
+    );
+
+    const maximum = Math.min(
+        range * 0.62,
+        range * maximumRatio,
+        42 + difficulty * 3.5
+    );
+
+    return {
+        min: Math.max(0, minimum),
+        max: Math.max(minimum, maximum)
+    };
+}
+
+function getRandomPipeCenter(limits) {
+    return randomBetween(limits.min, limits.max);
 }
 
 function createFirstPipeCenter(limits) {
-    const preferredCenter =
-        height * settings.preferredFirstPipePosition;
-
-    const range = Math.min(
-        settings.firstPipeCenterRange,
-        Math.max(0, (limits.max - limits.min) * 0.24)
+    const center = lerp(
+        limits.min,
+        limits.max,
+        settings.preferredFirstPipePosition
     );
 
     return clamp(
-        preferredCenter +
-            (Math.random() * 2 - 1) * range,
+        center + randomBetween(
+            -settings.firstPipeCenterRange,
+            settings.firstPipeCenterRange
+        ),
         limits.min,
         limits.max
     );
 }
 
-function choosePipeDirection(limits) {
-    const range = limits.max - limits.min;
-
-    if (range <= 0) {
-        return 0;
-    }
-
-    const normalized =
-        (previousPipeCenter - limits.min) / range;
-
-    if (normalized < 0.25) {
+function getRecentDistance(candidate) {
+    if (recentPipeCenters.length === 0) {
         return 1;
     }
 
-    if (normalized > 0.75) {
-        return -1;
+    const distances = recentPipeCenters.map(
+        (center) => Math.abs(candidate - center)
+    );
+
+    return Math.min(...distances);
+}
+
+function scorePipeCandidate(candidate, limits, movementRange) {
+    if (previousPipeCenter === null) {
+        return 1;
+    }
+
+    const range = Math.max(1, limits.max - limits.min);
+    const distance = Math.abs(candidate - previousPipeCenter);
+
+    const movementTarget = clamp(
+        movementRange.min +
+            (movementRange.max - movementRange.min) * 0.52,
+        0,
+        range
+    );
+
+    const movementSpread = Math.max(
+        range * 0.16,
+        movementRange.max * 0.45,
+        1
+    );
+
+    const movementPreference = Math.exp(
+        -Math.pow(
+            (distance - movementTarget) / movementSpread,
+            2
+        )
+    );
+
+    const recentDistance = getRecentDistance(candidate) / range;
+
+    const recentPenalty =
+        recentDistance < 0.1
+            ? (0.1 - recentDistance) * 8
+            : 0;
+
+    const edgeDistance =
+        Math.min(
+            candidate - limits.min,
+            limits.max - candidate
+        ) / range;
+
+    const edgePreference = clamp(
+        edgeDistance * 2,
+        0,
+        1
+    );
+
+    if (
+        distance < movementRange.min * 0.35 &&
+        range > 1
+    ) {
+        return -2;
     }
 
     if (
-        previousPipeDirection !== 0 &&
-        sameDirectionCount >= settings.maxSameDirection
+        distance > movementRange.max * 1.12
     ) {
-        return -previousPipeDirection;
+        return -2;
     }
 
-    if (previousPipeDirection === 0) {
-        return Math.random() < 0.5 ? -1 : 1;
-    }
-
-    const keepDirectionChance =
-        sameDirectionCount === 1 ? 0.35 : 0.2;
-
-    return Math.random() < keepDirectionChance
-        ? previousPipeDirection
-        : -previousPipeDirection;
+    return (
+        movementPreference * settings.pipeMovementWeight +
+        recentDistance * settings.pipeNoveltyWeight +
+        edgePreference * settings.pipeVariationWeight -
+        recentPenalty +
+        Math.random() * settings.pipeRandomness
+    );
 }
 
-function getPipeShift(limits) {
+function chooseNextPipeCenter(limits) {
+    if (previousPipeCenter === null) {
+        return createFirstPipeCenter(limits);
+    }
+
     const range = limits.max - limits.min;
-    const difficulty = getDifficulty();
 
-    const minimum =
-        settings.minPipeCenterShift +
-        difficulty * 5;
+    if (range <= 0) {
+        return limits.min;
+    }
 
-    const maximum =
-        settings.maxPipeCenterShift +
-        difficulty * 7;
+    const movementRange = getPipeMovementRange(limits);
+    const candidates = [];
 
-    const usableMinimum = Math.min(
-        minimum,
-        range * 0.72
-    );
-
-    const availableMaximum = Math.min(
-        maximum,
-        Math.max(usableMinimum, range * 0.82)
-    );
-
-    return usableMinimum +
-        Math.random() *
-        Math.max(
-            1,
-            availableMaximum - usableMinimum
+    for (
+        let i = 0;
+        i < settings.pipeCandidateCount;
+        i += 1
+    ) {
+        const candidate = getRandomPipeCenter(limits);
+        const candidateScore = scorePipeCandidate(
+            candidate,
+            limits,
+            movementRange
         );
+
+        if (candidateScore > -1.5) {
+            candidates.push({
+                center: candidate,
+                score: candidateScore
+            });
+        }
+    }
+
+    if (candidates.length === 0) {
+        const fallbackMin = Math.max(
+            limits.min,
+            previousPipeCenter - movementRange.max
+        );
+
+        const fallbackMax = Math.min(
+            limits.max,
+            previousPipeCenter + movementRange.max
+        );
+
+        return randomBetween(
+            fallbackMin,
+            fallbackMax
+        );
+    }
+
+    candidates.sort(
+        (a, b) => b.score - a.score
+    );
+
+    const topCount = Math.max(
+        5,
+        Math.ceil(candidates.length * 0.38)
+    );
+
+    const topCandidates = candidates.slice(
+        0,
+        topCount
+    );
+
+    const totalWeight = topCandidates.reduce(
+        (sum, candidate) =>
+            sum + Math.max(0.05, candidate.score + 2),
+        0
+    );
+
+    let pick = Math.random() * totalWeight;
+
+    for (const candidate of topCandidates) {
+        pick -= Math.max(
+            0.05,
+            candidate.score + 2
+        );
+
+        if (pick <= 0) {
+            return candidate.center;
+        }
+    }
+
+    return topCandidates[
+        topCandidates.length - 1
+    ].center;
+}
+
+function rememberPipeCenter(center) {
+    previousPipeCenter = center;
+    recentPipeCenters.push(center);
+
+    if (
+        recentPipeCenters.length >
+        settings.recentPipeMemory
+    ) {
+        recentPipeCenters.shift();
+    }
 }
 
 function createPipe() {
-    const gap = getPipeGap();
+    const gap = getResponsiveGap();
     const limits = getPipeCenterLimits(gap);
-
-    let center;
-
-    if (previousPipeCenter === null) {
-        center = createFirstPipeCenter(limits);
-        previousPipeDirection = 0;
-        sameDirectionCount = 0;
-    } else {
-        let direction = choosePipeDirection(limits);
-        const shift = getPipeShift(limits);
-
-        let nextCenter =
-            previousPipeCenter +
-            direction * shift;
-
-        if (
-            nextCenter < limits.min ||
-            nextCenter > limits.max
-        ) {
-            direction = -direction;
-
-            nextCenter =
-                previousPipeCenter +
-                direction * shift;
-        }
-
-        if (
-            nextCenter < limits.min ||
-            nextCenter > limits.max
-        ) {
-            nextCenter = clamp(
-                nextCenter,
-                limits.min,
-                limits.max
-            );
-        }
-
-        center = nextCenter;
-
-        const actualShift =
-            center - previousPipeCenter;
-
-        const actualDirection =
-            actualShift === 0
-                ? 0
-                : actualShift > 0
-                    ? 1
-                    : -1;
-
-        if (actualDirection === previousPipeDirection) {
-            sameDirectionCount += 1;
-        } else {
-            sameDirectionCount =
-                actualDirection === 0 ? 0 : 1;
-        }
-
-        previousPipeDirection = actualDirection;
-    }
-
-    const top =
-        center - gap * 0.5;
-
-    previousPipeCenter = center;
+    const center = chooseNextPipeCenter(limits);
 
     pipes.push({
         x: width + settings.pipeWidth,
-        top,
-        bottom: top + gap,
-        passed: false
+        center,
+        gap,
+        scored: false
     });
+
+    rememberPipeCenter(center);
 }
 
-function update(delta) {
-    bird.velocity += settings.gravity * delta;
-    bird.y += bird.velocity * delta;
+function resetBird() {
+    bird = {
+        x: width * 0.25,
+        y: height * 0.45,
+        radius: clamp(width * 0.028, 10, 15),
+        velocity: 0,
+        rotation: 0
+    };
+}
 
-    bird.rotation = Math.max(
-        -0.4,
-        Math.min(0.9, bird.velocity * 1.45)
+function resetGame() {
+    cancelAnimationFrame(animationFrame);
+    animationFrame = null;
+    lastTime = 0;
+    pipeTimer = 0;
+    firstPipeTimer = 0;
+    score = 0;
+    pipes = [];
+    previousPipeCenter = null;
+    recentPipeCenters = [];
+    gameState = "ready";
+    scoreValue.textContent = score;
+    bestValue.textContent = best;
+    gameOverlay.classList.remove("is-game-over");
+    gameButton.classList.remove("is-hidden");
+    gameButton.textContent = "START GAME";
+    gameButton.setAttribute(
+        "aria-label",
+        "Start Flappy Zero game"
     );
+    gameStatus.textContent = "";
+    gameStatus.classList.remove(
+        "best",
+        "status-pop"
+    );
+    scoreItem.classList.remove("score-pop");
+    resetBird();
+    draw();
+}
 
-    if (bird.flapTime > 0) {
-        bird.flapTime -= delta / 1000;
-    }
-
-    pipeTimer += delta;
-
-    const pipeInterval =
-        pipes.length === 0
-            ? settings.firstPipeDelay
-            : getPipeInterval();
-
-    if (pipeTimer >= pipeInterval) {
-        pipeTimer -= pipeInterval;
-        createPipe();
-    }
-
-    const speed =
-        getPipeSpeed() * delta;
-
-    for (let i = pipes.length - 1; i >= 0; i -= 1) {
-        const pipe = pipes[i];
-
-        pipe.x -= speed;
-
-        if (
-            !pipe.passed &&
-            pipe.x + settings.pipeWidth < bird.x
-        ) {
-            pipe.passed = true;
-            score += 1;
-            updateScoreDisplay();
-        }
-
-        if (
-            pipe.x + settings.pipeWidth < -30
-        ) {
-            pipes.splice(i, 1);
-        }
-    }
-
-    const ceilingHit =
-        bird.y - bird.radius <= 0;
-
-    const groundY =
-        height - settings.groundHeight;
-
-    const groundHit =
-        bird.y + bird.radius >= groundY;
-
-    if (ceilingHit || groundHit) {
-        endGame();
+function startGame() {
+    if (gameState === "playing") {
+        flap();
         return;
     }
 
-    const hitRadius =
-        bird.radius - 4;
+    if (gameState === "gameover") {
+        resetGame();
+    }
 
-    const birdLeft =
-        bird.x - hitRadius;
+    gameState = "playing";
+    gameButton.classList.add("is-hidden");
+    gameButton.setAttribute(
+        "aria-label",
+        "Restart Flappy Zero game"
+    );
+    gameOverlay.classList.remove(
+        "is-game-over"
+    );
+    gameStatus.textContent = "";
+    gameStatus.classList.remove(
+        "best",
+        "status-pop"
+    );
+    firstPipeTimer = settings.firstPipeDelay;
+    pipeTimer = 0;
+    resetBird();
+    flap();
+    lastTime = performance.now();
+    animationFrame = requestAnimationFrame(
+        gameLoop
+    );
+}
 
-    const birdRight =
-        bird.x + hitRadius;
+function endGame() {
+    if (gameState !== "playing") {
+        return;
+    }
 
-    const birdTop =
-        bird.y - hitRadius;
+    gameState = "gameover";
+    gameOverlay.classList.add(
+        "is-game-over"
+    );
+    gameButton.classList.remove(
+        "is-hidden"
+    );
+    gameButton.textContent = "START GAME";
+    gameButton.setAttribute(
+        "aria-label",
+        "Start Flappy Zero game"
+    );
+    gameStatus.textContent =
+        score > 0
+            ? `GAME OVER SCORE ${score}`
+            : "GAME OVER";
+    gameStatus.classList.remove(
+        "best",
+        "status-pop"
+    );
+    void gameStatus.offsetWidth;
+    gameStatus.classList.add(
+        "status-pop"
+    );
 
-    const birdBottom =
-        bird.y + hitRadius;
+    if (score > best) {
+        best = score;
+        localStorage.setItem(
+            STORAGE_KEY,
+            String(best)
+        );
+        bestValue.textContent = best;
+        gameStatus.textContent =
+            `NEW BEST ${best}`;
+        gameStatus.classList.add(
+            "best"
+        );
+    }
 
-    for (const pipe of pipes) {
-        const pipeLeft = pipe.x;
+    cancelAnimationFrame(animationFrame);
+    animationFrame = null;
+    draw();
+}
 
-        const pipeRight =
-            pipe.x + settings.pipeWidth;
+function flap() {
+    if (gameState !== "playing") {
+        return;
+    }
 
-        const overlapsX =
-            birdRight > pipeLeft &&
-            birdLeft < pipeRight;
+    bird.velocity = settings.flap;
+    bird.rotation = -0.45;
+    touchControl.classList.add(
+        "control-active"
+    );
 
-        const overlapsTop =
-            birdTop < pipe.top;
+    clearTimeout(flap.activeTimer);
 
-        const overlapsBottom =
-            birdBottom > pipe.bottom;
+    flap.activeTimer = setTimeout(() => {
+        touchControl.classList.remove(
+            "control-active"
+        );
+    }, 100);
+}
+
+function update(delta) {
+    if (!bird) {
+        return;
+    }
+
+    const difficulty = getDifficulty();
+
+    const gravity =
+        settings.gravity *
+        (1 + difficulty * 0.035);
+
+    const speed =
+        settings.pipeSpeed *
+        (1 + difficulty * 0.018);
+
+    bird.velocity += gravity * delta;
+    bird.y += bird.velocity * delta;
+
+    bird.rotation = lerp(
+        bird.rotation,
+        clamp(
+            bird.velocity * 1.25,
+            -0.45,
+            1.15
+        ),
+        Math.min(1, delta * 0.008)
+    );
+
+    if (firstPipeTimer > 0) {
+        firstPipeTimer -= delta;
+    } else {
+        pipeTimer += delta;
 
         if (
-            overlapsX &&
-            (overlapsTop || overlapsBottom)
+            pipeTimer >=
+            settings.pipeInterval
         ) {
-            endGame();
-            return;
+            pipeTimer -=
+                settings.pipeInterval;
+            createPipe();
         }
+    }
+
+    pipes.forEach((pipe) => {
+        pipe.x -= speed * delta;
+
+        if (
+            !pipe.scored &&
+            pipe.x + settings.pipeWidth <
+                bird.x
+        ) {
+            pipe.scored = true;
+            score += 1;
+            scoreValue.textContent =
+                score;
+
+            scoreItem.classList.remove(
+                "score-pop"
+            );
+
+            void scoreItem.offsetWidth;
+
+            scoreItem.classList.add(
+                "score-pop"
+            );
+        }
+    });
+
+    pipes = pipes.filter(
+        (pipe) =>
+            pipe.x + settings.pipeWidth >
+            -20
+    );
+
+    if (checkCollision()) {
+        endGame();
     }
 }
 
-function drawBackground() {
-    const panel = getCss("--panel");
-    const muted = getCss("--muted");
+function checkCollision() {
+    if (!bird) {
+        return false;
+    }
 
-    ctx.fillStyle = panel;
+    if (
+        bird.y - bird.radius <= 0
+    ) {
+        return true;
+    }
 
-    ctx.fillRect(
+    if (
+        bird.y + bird.radius >=
+        height - settings.groundHeight
+    ) {
+        return true;
+    }
+
+    for (const pipe of pipes) {
+        const pipeRight =
+            pipe.x + settings.pipeWidth;
+
+        const birdRight =
+            bird.x + bird.radius;
+
+        const birdLeft =
+            bird.x - bird.radius;
+
+        if (
+            birdRight < pipe.x ||
+            birdLeft > pipeRight
+        ) {
+            continue;
+        }
+
+        const gapTop =
+            pipe.center -
+            pipe.gap * 0.5;
+
+        const gapBottom =
+            pipe.center +
+            pipe.gap * 0.5;
+
+        if (
+            bird.y - bird.radius <
+                gapTop ||
+            bird.y + bird.radius >
+                gapBottom
+        ) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function getThemeColors() {
+    const dark =
+        document.documentElement.dataset.theme ===
+        "dark";
+
+    return {
+        background: dark
+            ? "#191919"
+            : "#fafaf8",
+        grid: dark
+            ? "rgba(255,255,255,0.035)"
+            : "rgba(0,0,0,0.035)",
+        pipe: dark
+            ? "#f5f5f3"
+            : "#101010",
+        pipeSoft: "#777777",
+        bird: dark
+            ? "#f5f5f3"
+            : "#101010",
+        eye: dark
+            ? "#101010"
+            : "#f5f5f3",
+        accent: dark
+            ? "#5b9cff"
+            : "#3b82f6"
+    };
+}
+
+function drawBackground(colors) {
+    context.fillStyle =
+        colors.background;
+
+    context.fillRect(
         0,
         0,
         width,
         height
     );
 
-    ctx.globalAlpha = 0.08;
-    ctx.fillStyle = muted;
+    context.strokeStyle =
+        colors.grid;
 
-    const lineSpacing = 38;
+    context.lineWidth = 1;
+
+    const gridSize =
+        Math.max(
+            22,
+            width / 14
+        );
 
     for (
-        let y = lineSpacing;
-        y < height - settings.groundHeight;
-        y += lineSpacing
+        let x = 0;
+        x <= width;
+        x += gridSize
     ) {
-        ctx.fillRect(
+        context.beginPath();
+        context.moveTo(x, 0);
+        context.lineTo(x, height);
+        context.stroke();
+    }
+
+    for (
+        let y = 0;
+        y <= height;
+        y += gridSize
+    ) {
+        context.beginPath();
+        context.moveTo(0, y);
+        context.lineTo(width, y);
+        context.stroke();
+    }
+}
+
+function drawPipe(pipe, colors) {
+    const gapTop =
+        pipe.center -
+        pipe.gap * 0.5;
+
+    const gapBottom =
+        pipe.center +
+        pipe.gap * 0.5;
+
+    const bodyWidth =
+        settings.pipeWidth * 0.72;
+
+    const capWidth =
+        settings.pipeWidth;
+
+    const capHeight =
+        Math.max(
+            12,
+            settings.pipeWidth * 0.28
+        );
+
+    const bodyX =
+        pipe.x +
+        (settings.pipeWidth -
+            bodyWidth) *
+        0.5;
+
+    const capX = pipe.x;
+
+    context.fillStyle =
+        colors.pipe;
+
+    context.fillRect(
+        bodyX,
+        0,
+        bodyWidth,
+        Math.max(0, gapTop)
+    );
+
+    context.fillRect(
+        bodyX,
+        gapBottom,
+        bodyWidth,
+        Math.max(
             0,
-            y,
-            width,
-            1
-        );
-    }
-
-    ctx.globalAlpha = 1;
-}
-
-function drawPipe(x, top, bottom) {
-    const pipeColor = getCss("--text");
-    const capHeight = 10;
-    const capWidth = 56;
-
-    const capOffset =
-        (capWidth - settings.pipeWidth) / 2;
-
-    ctx.fillStyle = pipeColor;
-
-    ctx.fillRect(
-        x,
-        0,
-        settings.pipeWidth,
-        top
+            height -
+                settings.groundHeight -
+                gapBottom
+        )
     );
 
-    ctx.fillRect(
-        x - capOffset,
-        Math.max(0, top - capHeight),
+    context.fillRect(
+        capX,
+        Math.max(
+            0,
+            gapTop - capHeight
+        ),
         capWidth,
         capHeight
     );
 
-    ctx.fillRect(
-        x,
-        bottom,
-        settings.pipeWidth,
-        height -
-            settings.groundHeight -
-            bottom
-    );
-
-    ctx.fillRect(
-        x - capOffset,
-        bottom,
+    context.fillRect(
+        capX,
+        gapBottom,
         capWidth,
         capHeight
     );
-}
 
-function drawPipes() {
-    for (const pipe of pipes) {
-        drawPipe(
-            pipe.x,
-            pipe.top,
-            pipe.bottom
-        );
-    }
-}
+    context.strokeStyle =
+        colors.pipeSoft;
 
-function drawGround() {
-    const groundY =
-        height - settings.groundHeight;
+    context.lineWidth = 1;
 
-    const text = getCss("--text");
-
-    ctx.fillStyle = text;
-
-    ctx.fillRect(
-        0,
-        groundY,
-        width,
-        settings.groundHeight
+    context.strokeRect(
+        capX + 0.5,
+        Math.max(
+            0,
+            gapTop - capHeight
+        ) + 0.5,
+        capWidth - 1,
+        capHeight - 1
     );
 
-    ctx.globalAlpha = 0.15;
-    ctx.fillStyle = getCss("--panel");
-
-    const stripeWidth = 18;
-
-    for (
-        let x = -stripeWidth;
-        x < width + stripeWidth;
-        x += stripeWidth * 2
-    ) {
-        ctx.fillRect(
-            x,
-            groundY,
-            stripeWidth,
-            2
-        );
-    }
-
-    ctx.globalAlpha = 1;
+    context.strokeRect(
+        capX + 0.5,
+        gapBottom + 0.5,
+        capWidth - 1,
+        capHeight - 1
+    );
 }
 
-function drawBird() {
-    ctx.save();
+function drawBird(colors) {
+    if (!bird) {
+        return;
+    }
 
-    const idleOffset =
-        state === "idle"
-            ? Math.sin(idleTime * 0.004) * 3
-            : 0;
+    context.save();
 
-    ctx.translate(
+    context.translate(
         bird.x,
-        bird.y + idleOffset
+        bird.y
     );
 
-    ctx.rotate(bird.rotation);
+    context.rotate(
+        bird.rotation
+    );
 
-    const text = getCss("--text");
-    const panel = getCss("--panel");
+    context.fillStyle =
+        colors.bird;
 
-    ctx.fillStyle = text;
+    context.beginPath();
 
-    ctx.beginPath();
-
-    ctx.arc(
+    context.arc(
         0,
         0,
         bird.radius,
@@ -733,67 +814,88 @@ function drawBird() {
         Math.PI * 2
     );
 
-    ctx.fill();
+    context.fill();
 
-    ctx.fillStyle = panel;
+    context.fillStyle =
+        colors.eye;
 
-    ctx.beginPath();
+    context.beginPath();
 
-    ctx.arc(
-        5,
-        -5,
-        3.1,
+    context.arc(
+        bird.radius * 0.36,
+        -bird.radius * 0.34,
+        bird.radius * 0.23,
         0,
         Math.PI * 2
     );
 
-    ctx.fill();
+    context.fill();
 
-    ctx.fillStyle = text;
+    context.fillStyle =
+        colors.accent;
 
-    ctx.beginPath();
+    context.beginPath();
 
-    ctx.arc(
-        5.7,
-        -5,
-        1.2,
+    context.arc(
+        bird.radius * 0.39,
+        -bird.radius * 0.34,
+        bird.radius * 0.09,
         0,
         Math.PI * 2
     );
 
-    ctx.fill();
+    context.fill();
 
-    ctx.beginPath();
+    context.fillStyle =
+        colors.pipeSoft;
 
-    ctx.moveTo(10, 0);
-    ctx.lineTo(17, 3.5);
-    ctx.lineTo(10, 6);
-    ctx.closePath();
+    context.beginPath();
 
-    ctx.fill();
-
-    const wingLift =
-        bird.flapTime > 0
-            ? -4
-            : 1;
-
-    ctx.globalAlpha = 0.9;
-
-    ctx.beginPath();
-
-    ctx.ellipse(
-        -4,
-        wingLift + 3,
-        7,
-        3.5,
-        -0.25,
-        0,
-        Math.PI * 2
+    context.moveTo(
+        bird.radius * 0.9,
+        -bird.radius * 0.08
     );
 
-    ctx.fill();
+    context.lineTo(
+        bird.radius * 1.45,
+        0
+    );
 
-    ctx.restore();
+    context.lineTo(
+        bird.radius * 0.9,
+        bird.radius * 0.25
+    );
+
+    context.closePath();
+    context.fill();
+
+    context.restore();
+}
+
+function drawGround(colors) {
+    const groundY =
+        height -
+        settings.groundHeight;
+
+    context.fillStyle =
+        colors.pipe;
+
+    context.fillRect(
+        0,
+        groundY,
+        width,
+        settings.groundHeight
+    );
+
+    context.fillStyle =
+        colors.grid;
+
+    context.fillRect(
+        0,
+        groundY,
+        width,
+        1
+    );
 }
 
 function draw() {
@@ -801,216 +903,281 @@ function draw() {
         return;
     }
 
-    ctx.clearRect(
+    const colors =
+        getThemeColors();
+
+    context.setTransform(
+        scale,
+        0,
+        0,
+        scale,
+        0,
+        0
+    );
+
+    context.clearRect(
         0,
         0,
         width,
         height
     );
 
-    drawBackground();
-    drawPipes();
-    drawGround();
-    drawBird();
-}
+    drawBackground(colors);
 
-function gameLoop(timestamp) {
-    if (state !== "playing") {
-        return;
-    }
-
-    const frameTime = Math.min(
-        Math.max(timestamp - lastTime, 0),
-        MAX_FRAME_TIME
+    pipes.forEach(
+        (pipe) =>
+            drawPipe(
+                pipe,
+                colors
+            )
     );
 
-    lastTime = timestamp;
-    accumulator += frameTime;
+    drawGround(colors);
+    drawBird(colors);
+}
 
-    let steps = 0;
+function resizeCanvas() {
+    const rect =
+        gameArea.getBoundingClientRect();
 
-    while (
-        accumulator >= FIXED_STEP &&
-        steps < MAX_STEPS
+    const nextWidth =
+        Math.max(
+            1,
+            rect.width
+        );
+
+    const nextHeight =
+        Math.max(
+            1,
+            rect.height
+        );
+
+    const oldWidth = width;
+    const oldHeight = height;
+
+    width = nextWidth;
+    height = nextHeight;
+
+    scale = Math.min(
+        window.devicePixelRatio || 1,
+        2
+    );
+
+    canvas.width =
+        Math.round(
+            width * scale
+        );
+
+    canvas.height =
+        Math.round(
+            height * scale
+        );
+
+    if (
+        bird &&
+        oldWidth &&
+        oldHeight
     ) {
-        update(FIXED_STEP);
+        const xRatio =
+            width / oldWidth;
 
-        accumulator -= FIXED_STEP;
-        steps += 1;
+        const yRatio =
+            height / oldHeight;
 
-        if (state !== "playing") {
-            break;
-        }
-    }
+        bird.x *= xRatio;
+        bird.y *= yRatio;
 
-    if (steps === MAX_STEPS) {
-        accumulator = 0;
+        bird.radius =
+            clamp(
+                width * 0.028,
+                10,
+                15
+            );
+
+        pipes.forEach(
+            (pipe) => {
+                pipe.x *= xRatio;
+                pipe.center *= yRatio;
+                pipe.gap =
+                    getResponsiveGap();
+            }
+        );
+
+        previousPipeCenter =
+            pipes.length
+                ? pipes[
+                      pipes.length - 1
+                  ].center
+                : previousPipeCenter;
+
+        recentPipeCenters =
+            recentPipeCenters.map(
+                (center) =>
+                    center * yRatio
+            );
+    } else {
+        resetBird();
     }
 
     draw();
-
-    if (state === "playing") {
-        animationFrame =
-            requestAnimationFrame(gameLoop);
-    }
 }
 
-function handleGameButton() {
-    if (
-        state === "idle" ||
-        state === "over"
-    ) {
-        resetGame();
-        startGame();
-    }
-}
-
-function handleTouchControl(event) {
-    event.preventDefault();
-    event.stopPropagation();
-
-    setInputMode("touch");
-
-    if (state !== "playing") {
+function gameLoop(timestamp) {
+    if (gameState !== "playing") {
         return;
     }
 
-    touchControl.classList.add(
-        "control-active"
-    );
-
-    if (touchFeedbackTimer) {
-        window.clearTimeout(
-            touchFeedbackTimer
+    const delta =
+        Math.min(
+            32,
+            Math.max(
+                0,
+                timestamp - lastTime
+            )
         );
+
+    lastTime = timestamp;
+    update(delta);
+    draw();
+
+    if (
+        gameState === "playing"
+    ) {
+        animationFrame =
+            requestAnimationFrame(
+                gameLoop
+            );
+    }
+}
+
+function handleGameInput(event) {
+    if (
+        event.type === "keydown"
+    ) {
+        if (
+            event.code !== "Space" &&
+            event.code !== "ArrowUp"
+        ) {
+            return;
+        }
+
+        event.preventDefault();
+
+        if (gameState !== "playing") {
+            return;
+        }
+
+        flap();
+        return;
+    }
+
+    if (gameState !== "playing") {
+        return;
     }
 
     flap();
-
-    touchFeedbackTimer =
-        window.setTimeout(() => {
-            touchControl.classList.remove(
-                "control-active"
-            );
-
-            touchFeedbackTimer = 0;
-        }, 90);
 }
 
-function handleKeyDown(event) {
-    if (event.code !== "Space") {
-        return;
-    }
+function showTouchControl() {
+    const coarse =
+        window.matchMedia(
+            "(hover: none) and (pointer: coarse)"
+        ).matches;
 
-    if (event.repeat) {
-        return;
-    }
-
-    event.preventDefault();
-
-    setInputMode("keyboard");
-
-    if (state === "playing") {
-        flap();
-    }
+    touchControlWrap.classList.toggle(
+        "is-visible",
+        coarse
+    );
 }
 
-function handlePointerDown(event) {
+function refreshThemeDraw() {
     if (
-        event.pointerType === "touch" ||
-        event.pointerType === "pen"
+        gameState !== "playing"
     ) {
-        setInputMode("touch");
+        draw();
     }
 }
 
-function handleVisibilityChange() {
-    if (document.hidden) {
-        if (state === "playing") {
-            cancelAnimationFrame(animationFrame);
+gameButton.addEventListener(
+    "click",
+    startGame
+);
+
+touchControl.addEventListener(
+    "pointerdown",
+    (event) => {
+        event.preventDefault();
+        handleGameInput(event);
+    }
+);
+
+gameArea.addEventListener(
+    "pointerdown",
+    (event) => {
+        if (
+            event.target ===
+            touchControl
+        ) {
+            return;
         }
 
-        return;
+        if (
+            window.matchMedia(
+                "(hover: none) and (pointer: coarse)"
+            ).matches
+        ) {
+            event.preventDefault();
+            handleGameInput(event);
+        }
     }
+);
 
-    if (state === "playing") {
-        lastTime = performance.now();
-        accumulator = 0;
+window.addEventListener(
+    "keydown",
+    handleGameInput,
+    { passive: false }
+);
 
-        animationFrame =
-            requestAnimationFrame(gameLoop);
+window.addEventListener(
+    "resize",
+    () => {
+        showTouchControl();
+        resizeCanvas();
     }
+);
 
-    if (state === "idle") {
-        cancelAnimationFrame(animationFrame);
+window.addEventListener(
+    "storage",
+    refreshThemeDraw
+);
 
-        animationFrame =
-            requestAnimationFrame(idleAnimation);
-    }
+if (window.matchMedia) {
+    const themeMedia =
+        window.matchMedia(
+            "(prefers-color-scheme: dark)"
+        );
+
+    themeMedia.addEventListener?.(
+        "change",
+        refreshThemeDraw
+    );
 }
 
 const themeObserver =
-    new MutationObserver(() => {
-        draw();
-    });
+    new MutationObserver(
+        refreshThemeDraw
+    );
 
 themeObserver.observe(
     document.documentElement,
     {
         attributes: true,
-        attributeFilter: ["data-theme"]
+        attributeFilter: [
+            "data-theme"
+        ]
     }
 );
 
-gameButton.addEventListener(
-    "click",
-    handleGameButton
-);
-
-touchControl.addEventListener(
-    "pointerdown",
-    handleTouchControl
-);
-
-window.addEventListener(
-    "keydown",
-    handleKeyDown
-);
-
-window.addEventListener(
-    "pointerdown",
-    handlePointerDown
-);
-
-window.addEventListener(
-    "resize",
-    resizeCanvas
-);
-
-document.addEventListener(
-    "visibilitychange",
-    handleVisibilityChange
-);
-
-function idleAnimation(timestamp) {
-    if (state !== "idle") {
-        return;
-    }
-
-    idleTime = timestamp;
-    draw();
-
-    animationFrame =
-        requestAnimationFrame(
-            idleAnimation
-        );
-}
-
-detectInitialInputMode();
+showTouchControl();
 resizeCanvas();
 resetGame();
-
-animationFrame =
-    requestAnimationFrame(
-        idleAnimation
-    );

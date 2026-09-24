@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#f5f5f3" id="themeColorMeta">
     <title>Zero Arcade — Player Access</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="../style.css">
     <link rel="stylesheet" href="login.css">
 </head>
 <body>
@@ -18,7 +18,7 @@
 
             <div class="header-actions">
                 <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode">
-                    <span class="theme-toggle-icon" id="themeToggleIcon">☾</span>
+                    <span class="theme-toggle-icon" id="themeToggleIcon">&#9790;</span>
                 </button>
 
                 <span class="status">ACCESS</span>
@@ -41,15 +41,15 @@
                     </div>
                 </div>
 
-                <form class="login-form" id="loginForm">
+                <form class="login-form" id="loginForm" autocomplete="on">
                     <div class="field-group">
                         <label for="email">EMAIL</label>
                         <input
                             id="email"
                             name="email"
                             type="email"
-                            value="zero@example.com"
-                            autocomplete="email"
+                            value="player@zeroarcade.com"
+                            autocomplete="username"
                             spellcheck="false"
                             required
                         >
@@ -57,18 +57,35 @@
 
                     <div class="field-group">
                         <label for="password">PASSWORD</label>
-                        <input
-                            id="password"
-                            name="password"
-                            type="password"
-                            value="zero123"
-                            autocomplete="current-password"
-                            required
-                        >
+
+                        <div class="password-field">
+                            <input
+                                id="password"
+                                name="password"
+                                type="password"
+                                value="zero123"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <button
+                                class="password-toggle"
+                                id="passwordToggle"
+                                type="button"
+                                aria-label="Show password"
+                                aria-pressed="false"
+                            >
+                                <svg viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"></path>
+                                    <circle cx="12" cy="12" r="2.7"></circle>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
 
                     <button class="login-button" id="loginButton" type="submit">
                         <span class="login-button-text">LOGIN</span>
+                        <span class="login-button-arrow" aria-hidden="true">↗</span>
                     </button>
 
                     <p class="login-message" id="loginMessage" aria-live="polite"></p>
@@ -82,7 +99,7 @@
         </footer>
     </main>
 
-    <script src="script.js"></script>
+    <script src="../script.js"></script>
     <script src="login.js"></script>
 </body>
 </html>

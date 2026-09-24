@@ -13,7 +13,7 @@ function applyTheme(theme) {
     document.documentElement.dataset.theme = isDark ? "dark" : "light";
 
     if (themeToggleIcon) {
-        themeToggleIcon.textContent = isDark ? "☀" : "☾";
+        themeToggleIcon.textContent = isDark ? "\u2600" : "\u263E";
     }
 
     if (themeToggle) {
@@ -67,7 +67,7 @@ function handleLogout() {
     sessionStorage.removeItem(ACCESS_KEY);
 
     window.setTimeout(() => {
-        window.location.replace("login.html");
+        window.location.replace("auth/login.html");
     }, 350);
 }
 
