@@ -230,6 +230,12 @@ a {
     font-weight: 800;
     letter-spacing: 0.16em;
     text-align: center;
+    transition:
+        color 0.2s ease;
+}
+
+.game-hint.complete {
+    color: var(--success);
 }
 
 .game-status {
@@ -264,6 +270,12 @@ a {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 10px;
+    transition:
+        opacity 0.25s ease;
+}
+
+.game-board.completed {
+    opacity: 0.96;
 }
 
 .memory-card {
@@ -410,8 +422,8 @@ html[data-theme="dark"] .memory-card:not(.flipped):not(.matched):hover .memory-c
     margin-top: 12px;
     border: 1px solid var(--border);
     border-radius: 14px;
-    background: #101010;
-    color: #ffffff;
+    background: var(--text);
+    color: var(--card);
     cursor: pointer;
     font-size: 8px;
     font-weight: 800;
@@ -426,19 +438,9 @@ html[data-theme="dark"] .memory-card:not(.flipped):not(.matched):hover .memory-c
     touch-action: manipulation;
 }
 
-html[data-theme="dark"] .restart-button {
-    background: #f5f5f3;
-    color: #101010;
-}
-
 .restart-button:hover {
-    background: #1c1c1c;
+    opacity: 0.88;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
-}
-
-html[data-theme="dark"] .restart-button:hover {
-    background: #ffffff;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .restart-button:focus-visible {
@@ -581,5 +583,17 @@ html[data-theme="dark"] .restart-button:hover {
 
     .score-item:last-child {
         grid-column: span 2;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .game-card,
+    .back-link,
+    .memory-card,
+    .memory-card-inner,
+    .game-board,
+    .restart-button {
+        animation: none;
+        transition: none;
     }
 }

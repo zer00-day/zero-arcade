@@ -24,6 +24,7 @@ let timer = null;
 let mismatchTimer = null;
 let gameStarted = false;
 let gameSession = 0;
+let gameStartTime = 0;
 
 const savedBest = Number(localStorage.getItem(STORAGE_KEY));
 
@@ -35,7 +36,9 @@ function shuffle(array) {
     const shuffled = [...array];
 
     for (let i = shuffled.length - 1; i > 0; i--) {
-        const randomIndex = Math.floor(Math.random() * (i + 1));
+        const randomIndex = Math.floor(
+            Math.random() * (i + 1)
+        );
 
         [shuffled[i], shuffled[randomIndex]] = [
             shuffled[randomIndex],
@@ -50,7 +53,9 @@ function formatTime(value) {
     const minutes = Math.floor(value / 60);
     const remainingSeconds = value % 60;
 
-    return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`;
+    return `${String(minutes).padStart(2, "0")}:${String(
+        remainingSeconds
+    ).padStart(2, "0")}`;
 }
 
 function updateScores() {
@@ -71,20 +76,38 @@ function setGameStatus(message = "", type = "") {
     }
 }
 
-function startTimer() {
-    if (timer) {
+function updateElapsedTime() {
+    if (!gameStartTime || !gameStarted) {
         return;
     }
 
+    seconds = Math.floor(
+        (performance.now() - gameStartTime) / 1000
+    );
+
+    timeScore.textContent = formatTime(seconds);
+}
+
+function startTimer() {
+    if (timer || !gameStarted) {
+        return;
+    }
+
+    gameStartTime = performance.now();
+
+    updateElapsedTime();
+
     timer = setInterval(() => {
-        seconds++;
-        timeScore.textContent = formatTime(seconds);
-    }, 1000);
+        updateElapsedTime();
+    }, 250);
 }
 
 function stopTimer() {
+    updateElapsedTime();
+
     clearInterval(timer);
     timer = null;
+    gameStartTime = 0;
 }
 
 function clearMismatchTimer() {
@@ -107,7 +130,10 @@ function getCardLabel(card) {
 }
 
 function updateCardLabel(card) {
-    card.setAttribute("aria-label", getCardLabel(card));
+    card.setAttribute(
+        "aria-label",
+        getCardLabel(card)
+    );
 }
 
 function createCard(symbol, index) {
@@ -118,7 +144,10 @@ function createCard(symbol, index) {
     card.dataset.symbol = symbol;
     card.dataset.index = index;
     card.disabled = !gameStarted;
-    card.setAttribute("aria-label", "Hidden memory card");
+    card.setAttribute(
+        "aria-label",
+        "Hidden memory card"
+    );
 
     card.innerHTML = `
         <span class="memory-card-inner">
@@ -127,17 +156,24 @@ function createCard(symbol, index) {
         </span>
     `;
 
-    card.addEventListener("click", () => handleCardClick(card));
+    card.addEventListener(
+        "click",
+        () => handleCardClick(card)
+    );
 
     return card;
 }
 
 function setupBoard() {
     gameBoard.innerHTML = "";
+    gameBoard.classList.remove("completed");
+
     cards = shuffle(symbols);
 
     cards.forEach((symbol, index) => {
-        gameBoard.appendChild(createCard(symbol, index));
+        gameBoard.appendChild(
+            createCard(symbol, index)
+        );
     });
 }
 
@@ -160,7 +196,11 @@ function flipCard(card) {
 
 function unflipCards(session) {
     mismatchTimer = setTimeout(() => {
-        if (session !== gameSession || !firstCard || !secondCard) {
+        if (
+            session !== gameSession ||
+            !firstCard ||
+            !secondCard
+        ) {
             return;
         }
 
@@ -171,6 +211,7 @@ function unflipCards(session) {
         updateCardLabel(secondCard);
 
         mismatchTimer = null;
+
         resetTurn();
     }, 700);
 }
@@ -189,7 +230,10 @@ function handleMatch() {
     matchedPairs++;
     resetTurn();
 
-    if (matchedPairs === symbols.length / 2) {
+    if (
+        matchedPairs ===
+        symbols.length / 2
+    ) {
         finishGame();
     }
 }
@@ -209,20 +253,27 @@ function handleCardClick(card) {
         return;
     }
 
-    flipCard(card);
-
     if (!firstCard) {
+        flipCard(card);
         firstCard = card;
+
+        startTimer();
+
         return;
     }
 
+    flipCard(card);
+
     secondCard = card;
     lockBoard = true;
-    moves++;
 
+    moves++;
     updateScores();
 
-    if (firstCard.dataset.symbol === secondCard.dataset.symbol) {
+    if (
+        firstCard.dataset.symbol ===
+        secondCard.dataset.symbol
+    ) {
         handleMatch();
     } else {
         handleMismatch();
@@ -230,18 +281,30 @@ function handleCardClick(card) {
 }
 
 function finishGame() {
+    updateElapsedTime();
     stopTimer();
     clearMismatchTimer();
 
-    const currentBest = Number(localStorage.getItem(STORAGE_KEY));
+    const currentBest = Number(
+        localStorage.getItem(STORAGE_KEY)
+    );
 
     const isNewBest =
         !Number.isFinite(currentBest) ||
         currentBest <= 0 ||
         moves < currentBest;
 
+    gameStarted = false;
+    setCardsEnabled(false);
+    gameBoard.classList.add("completed");
+    gameHint.textContent = "ALL PAIRS MATCHED";
+
     if (isNewBest) {
-        localStorage.setItem(STORAGE_KEY, String(moves));
+        localStorage.setItem(
+            STORAGE_KEY,
+            String(moves)
+        );
+
         bestScore.textContent = moves;
 
         setGameStatus(
@@ -254,9 +317,6 @@ function finishGame() {
             "win"
         );
     }
-
-    gameStarted = false;
-    setCardsEnabled(false);
 }
 
 function startNewGame() {
@@ -264,22 +324,26 @@ function startNewGame() {
     clearMismatchTimer();
 
     gameSession++;
+
     firstCard = null;
     secondCard = null;
     lockBoard = false;
     moves = 0;
     matchedPairs = 0;
     seconds = 0;
+    gameStartTime = 0;
     gameStarted = true;
 
     setGameStatus();
+
     gameHint.textContent = "MATCH ALL PAIRS";
+
     updateScores();
     setupBoard();
 
     restartButton.textContent = "NEW GAME";
+
     setCardsEnabled(true);
-    startTimer();
 }
 
 function initializeGame() {
@@ -287,30 +351,33 @@ function initializeGame() {
     clearMismatchTimer();
 
     gameSession++;
+
     firstCard = null;
     secondCard = null;
     lockBoard = false;
     moves = 0;
     matchedPairs = 0;
     seconds = 0;
+    gameStartTime = 0;
     gameStarted = false;
 
     setGameStatus();
+
     gameHint.textContent = "MATCH ALL PAIRS";
+
     updateScores();
     setupBoard();
 
     restartButton.textContent = "START GAME";
+
     setCardsEnabled(false);
 }
 
-restartButton.addEventListener("click", () => {
-    if (gameStarted) {
+restartButton.addEventListener(
+    "click",
+    () => {
         startNewGame();
-        return;
     }
-
-    startNewGame();
-});
+);
 
 initializeGame();

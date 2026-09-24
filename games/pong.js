@@ -1,18 +1,30 @@
 const canvas = document.getElementById("pongCanvas");
 const ctx = canvas.getContext("2d");
+
 const playerScoreElement = document.getElementById("playerScore");
 const aiScoreElement = document.getElementById("aiScore");
 const speedValue = document.getElementById("speedValue");
+const targetValue = document.getElementById("targetValue");
 const gameStatus = document.getElementById("gameStatus");
 const newGameButton = document.getElementById("newGameButton");
 const upButton = document.getElementById("upButton");
 const downButton = document.getElementById("downButton");
 const controlButtons = [upButton, downButton];
 const pongControls = document.querySelector(".pong-controls");
+const targetButtons = Array.from(document.querySelectorAll(".target-button"));
 
-const TARGET_SCORE = 5;
 const BASE_BALL_SPEED = 5;
 const MAX_BALL_SPEED = 9;
+const COUNTDOWN_SECONDS = 3;
+const COUNTDOWN_STEP_DELAY = 700;
+const GO_DELAY = 500;
+const POINT_DELAY = 650;
+const FIXED_STEP = 1;
+const MAX_FRAME_STEPS = 5;
+const MAX_PHYSICS_STEPS = 8;
+const BALL_SUBSTEP_DISTANCE = 5;
+const MIN_BOUNCE_ANGLE = 0.08;
+const MAX_BOUNCE_ANGLE = 1.05;
 
 const world = {
     width: 800,
@@ -44,7 +56,8 @@ const ai = {
     x: world.width - 42,
     y: 0,
     score: 0,
-    speed: 4.2
+    speed: 4.2,
+    reaction: 0.12
 };
 
 const keys = {
@@ -53,31 +66,56 @@ const keys = {
 };
 
 let animationFrame = null;
-let running = false;
+let gameState = "ready";
 let roundActive = false;
 let lastTime = 0;
+let accumulator = 0;
 let pointTimer = null;
+let countdownTimer = null;
 let colors = {};
-let inputMode = "touch";
+let inputMode = "keyboard";
+let targetScore = 5;
+let pageHidden = false;
+
+const touchDeviceQuery = window.matchMedia("(pointer: coarse)");
+const isTouchDevice = touchDeviceQuery.matches;
 
 function setInputMode(mode) {
+    if (mode !== "keyboard" && mode !== "touch") {
+        return;
+    }
+
+    if (inputMode === mode) {
+        updateMobileControls();
+        return;
+    }
+
     inputMode = mode;
-    pongControls.hidden = mode !== "touch";
 
     if (mode === "keyboard") {
         resetKeys();
     }
+
+    updateMobileControls();
 }
 
 function detectInitialInputMode() {
-    const coarsePointer = window.matchMedia("(pointer: coarse)").matches;
-    setInputMode(coarsePointer ? "touch" : "keyboard");
+    inputMode = isTouchDevice ? "touch" : "keyboard";
+    updateMobileControls();
 }
 
-function handlePointerInput(event) {
-    if (event.pointerType === "touch" || event.pointerType === "pen") {
-        setInputMode("touch");
+function resizeCanvas() {
+    const pixelRatio = Math.min(window.devicePixelRatio || 1, 3);
+    const width = Math.round(world.width * pixelRatio);
+    const height = Math.round(world.height * pixelRatio);
+
+    if (canvas.width !== width || canvas.height !== height) {
+        canvas.width = width;
+        canvas.height = height;
     }
+
+    ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+    draw();
 }
 
 function refreshColors() {
@@ -110,10 +148,17 @@ function resetPaddles() {
     ai.y = world.height / 2 - paddle.height / 2;
 }
 
-function resetBall(direction = Math.random() < 0.5 ? -1 : 1) {
+function resetBall(direction = 1, centered = true) {
     ball.x = world.width / 2 - ball.size / 2;
     ball.y = world.height / 2 - ball.size / 2;
     ball.speed = BASE_BALL_SPEED;
+
+    if (centered) {
+        ball.vx = 0;
+        ball.vy = 0;
+        speedValue.textContent = "1.0x";
+        return;
+    }
 
     const angle = Math.random() * 0.9 - 0.45;
 
@@ -137,64 +182,234 @@ function setGameStatus(message = "", type = "") {
     }
 }
 
-function startGame() {
+function setTarget(value) {
+    const parsedValue = Number(value);
+
+    const selectedTarget = clamp(
+        Number.isFinite(parsedValue) ? parsedValue : 5,
+        1,
+        5
+    );
+
+    targetScore = selectedTarget;
+
+    if (targetValue) {
+        targetValue.textContent = String(targetScore);
+    }
+
+    targetButtons.forEach((button) => {
+        const isSelected =
+            Number(button.dataset.target) === targetScore;
+
+        button.classList.toggle("is-selected", isSelected);
+        button.setAttribute("aria-pressed", String(isSelected));
+    });
+}
+
+function setTargetControlsDisabled(disabled) {
+    targetButtons.forEach((button) => {
+        button.disabled = disabled;
+    });
+}
+
+function showStartButton() {
+    newGameButton.textContent = "START GAME";
+    newGameButton.setAttribute("aria-label", "Start Pong game");
+    newGameButton.classList.remove("is-hidden");
+    newGameButton.disabled = false;
+}
+
+function hideStartButton() {
+    newGameButton.classList.add("is-hidden");
+    newGameButton.disabled = true;
+}
+
+function updateMobileControls() {
+    const shouldShow =
+        isTouchDevice &&
+        inputMode === "touch" &&
+        (gameState === "countdown" || gameState === "playing");
+
+    pongControls.hidden = !shouldShow;
+
+    if (!shouldShow) {
+        resetKeys();
+    }
+}
+
+function clearTimers() {
     clearTimeout(pointTimer);
+    clearTimeout(countdownTimer);
+
     pointTimer = null;
+    countdownTimer = null;
+}
 
-    cancelAnimationFrame(animationFrame);
-    animationFrame = null;
+function stopGameLoop() {
+    if (animationFrame !== null) {
+        cancelAnimationFrame(animationFrame);
+        animationFrame = null;
+    }
 
+    accumulator = 0;
+}
+
+function startCountdown() {
+    clearTimers();
+    stopGameLoop();
     resetKeys();
+    resetPaddles();
+    resetBall();
+
+    gameState = "countdown";
+    roundActive = false;
+    pageHidden = false;
+
+    hideStartButton();
+    setTargetControlsDisabled(true);
+    updateMobileControls();
+
+    setGameStatus(String(COUNTDOWN_SECONDS));
+
+    let count = COUNTDOWN_SECONDS;
+
+    const countdownStep = () => {
+        if (gameState !== "countdown") {
+            return;
+        }
+
+        if (pageHidden) {
+            countdownTimer = setTimeout(
+                countdownStep,
+                COUNTDOWN_STEP_DELAY
+            );
+            return;
+        }
+
+        count -= 1;
+
+        if (count > 0) {
+            setGameStatus(String(count));
+
+            countdownTimer = setTimeout(
+                countdownStep,
+                COUNTDOWN_STEP_DELAY
+            );
+
+            return;
+        }
+
+        setGameStatus("GO", "win");
+
+        countdownTimer = setTimeout(() => {
+            if (gameState !== "countdown") {
+                return;
+            }
+
+            if (pageHidden) {
+                countdownTimer = setTimeout(
+                    () => {
+                        if (gameState === "countdown") {
+                            resetBall(
+                                Math.random() < 0.5 ? -1 : 1,
+                                false
+                            );
+
+                            gameState = "playing";
+                            roundActive = true;
+                            setGameStatus("");
+                            updateMobileControls();
+
+                            lastTime = performance.now();
+                            accumulator = 0;
+                            animationFrame =
+                                requestAnimationFrame(gameLoop);
+                        }
+                    },
+                    GO_DELAY
+                );
+
+                return;
+            }
+
+            resetBall(
+                Math.random() < 0.5 ? -1 : 1,
+                false
+            );
+
+            gameState = "playing";
+            roundActive = true;
+
+            setGameStatus("");
+            updateMobileControls();
+
+            lastTime = performance.now();
+            accumulator = 0;
+            animationFrame = requestAnimationFrame(gameLoop);
+        }, GO_DELAY);
+    };
+
+    countdownTimer = setTimeout(
+        countdownStep,
+        COUNTDOWN_STEP_DELAY
+    );
+
+    draw();
+}
+
+function startGame() {
+    if (
+        gameState === "playing" ||
+        gameState === "countdown"
+    ) {
+        return;
+    }
+
+    pageHidden = false;
 
     player.score = 0;
     ai.score = 0;
 
     updateScoreboard();
-    resetPaddles();
-    resetBall();
-    setGameStatus();
+    setGameStatus("");
 
-    running = true;
-    roundActive = true;
-
-    newGameButton.textContent = "NEW GAME";
-    newGameButton.setAttribute("aria-label", "Start a new Pong game");
-
-    lastTime = performance.now();
-    animationFrame = requestAnimationFrame(gameLoop);
+    startCountdown();
 }
 
 function finishGame() {
-    running = false;
+    gameState = "finished";
     roundActive = false;
 
-    clearTimeout(pointTimer);
-    pointTimer = null;
-
+    clearTimers();
+    stopGameLoop();
     resetKeys();
+    resetPaddles();
+    resetBall();
 
-    cancelAnimationFrame(animationFrame);
-    animationFrame = null;
+    setTargetControlsDisabled(false);
+    updateMobileControls();
+    showStartButton();
 
-    const playerWon = player.score >= TARGET_SCORE;
+    const playerWon = player.score >= targetScore;
 
     setGameStatus(
         playerWon ? "YOU WIN" : "AI WINS",
         playerWon ? "win" : "lose"
     );
 
-    newGameButton.textContent = "NEW GAME";
-    newGameButton.setAttribute("aria-label", "Start a new Pong game");
-
     draw();
 }
 
 function scorePoint(playerScored) {
-    if (!roundActive) {
+    if (
+        gameState !== "playing" ||
+        !roundActive
+    ) {
         return;
     }
 
     roundActive = false;
+    resetKeys();
 
     if (playerScored) {
         player.score += 1;
@@ -204,7 +419,10 @@ function scorePoint(playerScored) {
 
     updateScoreboard();
 
-    if (player.score >= TARGET_SCORE || ai.score >= TARGET_SCORE) {
+    if (
+        player.score >= targetScore ||
+        ai.score >= targetScore
+    ) {
         finishGame();
         return;
     }
@@ -215,18 +433,57 @@ function scorePoint(playerScored) {
     );
 
     pointTimer = setTimeout(() => {
-        if (!running) {
+        pointTimer = null;
+
+        if (gameState !== "playing") {
+            return;
+        }
+
+        if (pageHidden) {
+            pointTimer = setTimeout(
+                () => {
+                    if (gameState !== "playing") {
+                        return;
+                    }
+
+                    resetPaddles();
+                    resetBall(
+                        playerScored ? 1 : -1,
+                        false
+                    );
+
+                    roundActive = true;
+                    setGameStatus("");
+                    lastTime = performance.now();
+                    accumulator = 0;
+                },
+                POINT_DELAY
+            );
+
             return;
         }
 
         resetPaddles();
-        resetBall(playerScored ? 1 : -1);
+        resetBall(
+            playerScored ? 1 : -1,
+            false
+        );
+
         roundActive = true;
-        setGameStatus();
-    }, 650);
+        setGameStatus("");
+        lastTime = performance.now();
+        accumulator = 0;
+    }, POINT_DELAY);
 }
 
 function movePlayer(delta) {
+    if (
+        gameState !== "playing" ||
+        !roundActive
+    ) {
+        return;
+    }
+
     player.y = clamp(
         player.y + delta,
         0,
@@ -235,6 +492,13 @@ function movePlayer(delta) {
 }
 
 function updatePlayer(delta) {
+    if (
+        gameState !== "playing" ||
+        !roundActive
+    ) {
+        return;
+    }
+
     let movement = 0;
 
     if (keys.up) {
@@ -251,12 +515,25 @@ function updatePlayer(delta) {
 }
 
 function updateAI(delta) {
-    const target = ball.y + ball.size / 2;
-    const center = ai.y + paddle.height / 2;
-    const difference = target - center;
+    if (
+        gameState !== "playing" ||
+        !roundActive
+    ) {
+        return;
+    }
+
+    const ballCenter = ball.y + ball.size / 2;
+    const aiCenter = ai.y + paddle.height / 2;
+
+    const lead = ball.vx > 0
+        ? ball.vy * ai.reaction
+        : 0;
+
+    const target = ballCenter + lead;
+    const difference = target - aiCenter;
     const maxMovement = ai.speed * delta;
 
-    if (Math.abs(difference) > 5) {
+    if (Math.abs(difference) > 3) {
         ai.y += clamp(
             difference,
             -maxMovement,
@@ -281,91 +558,152 @@ function rectanglesOverlap(a, b) {
 }
 
 function bounceFromPaddle(paddleObject, direction) {
-    const paddleCenter = paddleObject.y + paddle.height / 2;
-    const ballCenter = ball.y + ball.size / 2;
+    const paddleCenter =
+        paddleObject.y + paddle.height / 2;
+
+    const ballCenter =
+        ball.y + ball.size / 2;
 
     const relative = clamp(
-        (ballCenter - paddleCenter) / (paddle.height / 2),
+        (ballCenter - paddleCenter) /
+            (paddle.height / 2),
         -1,
         1
     );
 
-    const angle = relative * 1.05;
+    let angle = relative * MAX_BOUNCE_ANGLE;
+
+    if (Math.abs(angle) < MIN_BOUNCE_ANGLE) {
+        angle = angle < 0
+            ? -MIN_BOUNCE_ANGLE
+            : MIN_BOUNCE_ANGLE;
+    }
 
     ball.speed = Math.min(
-        ball.speed + 0.25,
+        ball.speed + 0.2,
         MAX_BALL_SPEED
     );
 
-    ball.vx = Math.cos(angle) * ball.speed * direction;
-    ball.vy = Math.sin(angle) * ball.speed;
+    ball.vx =
+        Math.cos(angle) *
+        ball.speed *
+        direction;
 
-    speedValue.textContent = `${(
-        ball.speed / BASE_BALL_SPEED
-    ).toFixed(1)}x`;
+    ball.vy =
+        Math.sin(angle) *
+        ball.speed;
+
+    speedValue.textContent =
+        `${(ball.speed / BASE_BALL_SPEED).toFixed(1)}x`;
 }
 
 function updateBall(delta) {
-    ball.x += ball.vx * delta;
-    ball.y += ball.vy * delta;
-
-    if (ball.y <= 0) {
-        ball.y = 0;
-        ball.vy = Math.abs(ball.vy);
-    }
-
-    if (ball.y + ball.size >= world.height) {
-        ball.y = world.height - ball.size;
-        ball.vy = -Math.abs(ball.vy);
-    }
-
-    const playerRect = {
-        x: player.x,
-        y: player.y,
-        width: paddle.width,
-        height: paddle.height
-    };
-
-    const aiRect = {
-        x: ai.x,
-        y: ai.y,
-        width: paddle.width,
-        height: paddle.height
-    };
-
-    const ballRect = {
-        x: ball.x,
-        y: ball.y,
-        width: ball.size,
-        height: ball.size
-    };
-
     if (
-        ball.vx < 0 &&
-        rectanglesOverlap(ballRect, playerRect)
+        gameState !== "playing" ||
+        !roundActive
     ) {
-        ball.x = player.x + paddle.width;
-        bounceFromPaddle(player, 1);
+        return;
     }
 
-    if (
-        ball.vx > 0 &&
-        rectanglesOverlap(ballRect, aiRect)
+    const distance =
+        Math.max(
+            Math.abs(ball.vx),
+            Math.abs(ball.vy)
+        ) * delta;
+
+    const steps = clamp(
+        Math.ceil(distance / BALL_SUBSTEP_DISTANCE),
+        1,
+        MAX_PHYSICS_STEPS
+    );
+
+    const stepDelta = delta / steps;
+
+    for (
+        let step = 0;
+        step < steps;
+        step += 1
     ) {
-        ball.x = ai.x - ball.size;
-        bounceFromPaddle(ai, -1);
-    }
+        if (
+            gameState !== "playing" ||
+            !roundActive
+        ) {
+            return;
+        }
 
-    if (ball.x + ball.size < 0) {
-        scorePoint(false);
-    }
+        ball.x += ball.vx * stepDelta;
+        ball.y += ball.vy * stepDelta;
 
-    if (ball.x > world.width) {
-        scorePoint(true);
+        if (ball.y <= 0) {
+            ball.y = 0;
+            ball.vy = Math.abs(ball.vy);
+        }
+
+        if (ball.y + ball.size >= world.height) {
+            ball.y = world.height - ball.size;
+            ball.vy = -Math.abs(ball.vy);
+        }
+
+        const playerRect = {
+            x: player.x,
+            y: player.y,
+            width: paddle.width,
+            height: paddle.height
+        };
+
+        const aiRect = {
+            x: ai.x,
+            y: ai.y,
+            width: paddle.width,
+            height: paddle.height
+        };
+
+        const ballRect = {
+            x: ball.x,
+            y: ball.y,
+            width: ball.size,
+            height: ball.size
+        };
+
+        if (
+            ball.vx < 0 &&
+            rectanglesOverlap(ballRect, playerRect)
+        ) {
+            ball.x = player.x + paddle.width;
+
+            bounceFromPaddle(
+                player,
+                1
+            );
+        } else if (
+            ball.vx > 0 &&
+            rectanglesOverlap(ballRect, aiRect)
+        ) {
+            ball.x = ai.x - ball.size;
+
+            bounceFromPaddle(
+                ai,
+                -1
+            );
+        }
+
+        if (ball.x + ball.size < 0) {
+            scorePoint(false);
+            return;
+        }
+
+        if (ball.x > world.width) {
+            scorePoint(true);
+            return;
+        }
     }
 }
 
 function update(delta) {
+    if (gameState !== "playing") {
+        return;
+    }
+
     updatePlayer(delta);
     updateAI(delta);
 
@@ -374,7 +712,13 @@ function update(delta) {
     }
 }
 
-function drawRoundedRect(x, y, width, height, radius) {
+function drawRoundedRect(
+    x,
+    y,
+    width,
+    height,
+    radius
+) {
     const r = Math.min(
         radius,
         width / 2,
@@ -382,7 +726,11 @@ function drawRoundedRect(x, y, width, height, radius) {
     );
 
     ctx.beginPath();
-    ctx.moveTo(x + r, y);
+
+    ctx.moveTo(
+        x + r,
+        y
+    );
 
     ctx.arcTo(
         x + width,
@@ -453,6 +801,7 @@ function draw() {
     );
 
     ctx.stroke();
+
     ctx.setLineDash([]);
 
     ctx.fillStyle = colors.soft;
@@ -491,8 +840,6 @@ function draw() {
 
     ctx.fill();
 
-    ctx.fillStyle = colors.blue;
-
     drawRoundedRect(
         ball.x,
         ball.y,
@@ -505,20 +852,45 @@ function draw() {
 }
 
 function gameLoop(timestamp) {
-    const delta = Math.min(
-        (timestamp - lastTime) / 16.6667,
-        2
+    if (gameState !== "playing") {
+        animationFrame = null;
+        return;
+    }
+
+    const elapsed = Math.max(
+        0,
+        Math.min(
+            timestamp - lastTime,
+            250
+        )
     );
 
     lastTime = timestamp;
+    accumulator += elapsed;
 
-    if (running) {
-        update(delta);
+    let steps = 0;
+
+    while (
+        accumulator >= 16.6667 &&
+        steps < MAX_FRAME_STEPS
+    ) {
+        update(FIXED_STEP);
+        accumulator -= 16.6667;
+        steps += 1;
+
+        if (gameState !== "playing") {
+            accumulator = 0;
+            break;
+        }
+    }
+
+    if (steps === MAX_FRAME_STEPS) {
+        accumulator = 0;
     }
 
     draw();
 
-    if (running) {
+    if (gameState === "playing") {
         animationFrame = requestAnimationFrame(gameLoop);
     } else {
         animationFrame = null;
@@ -528,16 +900,26 @@ function gameLoop(timestamp) {
 function setKeyState(key, value) {
     const normalizedKey = key.toLowerCase();
 
-    if (key === "ArrowUp" || normalizedKey === "w") {
+    if (
+        key === "ArrowUp" ||
+        normalizedKey === "w"
+    ) {
         keys.up = value;
     }
 
-    if (key === "ArrowDown" || normalizedKey === "s") {
+    if (
+        key === "ArrowDown" ||
+        normalizedKey === "s"
+    ) {
         keys.down = value;
     }
 }
 
 function handleKeyDown(event) {
+    if (gameState !== "playing") {
+        return;
+    }
+
     const key = event.key;
     const normalizedKey = key.toLowerCase();
 
@@ -548,24 +930,44 @@ function handleKeyDown(event) {
         normalizedKey === "s"
     ) {
         event.preventDefault();
-        setInputMode("keyboard");
+
+        if (inputMode !== "keyboard") {
+            setInputMode("keyboard");
+        }
+
         setKeyState(key, true);
     }
 }
 
 function handleKeyUp(event) {
-    setKeyState(event.key, false);
+    setKeyState(
+        event.key,
+        false
+    );
 }
 
 function bindHoldButton(button, keyName) {
     const press = (event) => {
         event.preventDefault();
 
-        setInputMode("touch");
+        if (
+            !isTouchDevice ||
+            gameState !== "playing"
+        ) {
+            return;
+        }
+
+        if (inputMode !== "touch") {
+            setInputMode("touch");
+        }
+
         keys[keyName] = true;
         button.classList.add("control-active");
 
-        if (button.setPointerCapture) {
+        if (
+            button.setPointerCapture &&
+            !button.hasPointerCapture(event.pointerId)
+        ) {
             button.setPointerCapture(event.pointerId);
         }
     };
@@ -584,9 +986,20 @@ function bindHoldButton(button, keyName) {
         }
     };
 
-    button.addEventListener("pointerdown", press);
-    button.addEventListener("pointerup", release);
-    button.addEventListener("pointercancel", release);
+    button.addEventListener(
+        "pointerdown",
+        press
+    );
+
+    button.addEventListener(
+        "pointerup",
+        release
+    );
+
+    button.addEventListener(
+        "pointercancel",
+        release
+    );
 
     button.addEventListener(
         "lostpointercapture",
@@ -606,34 +1019,80 @@ function bindHoldButton(button, keyName) {
 
 function handleVisibilityChange() {
     if (document.hidden) {
+        pageHidden = true;
         resetKeys();
+        return;
+    }
+
+    pageHidden = false;
+
+    if (gameState === "playing") {
+        lastTime = performance.now();
+        accumulator = 0;
     }
 }
 
-newGameButton.addEventListener("click", startGame);
-window.addEventListener("keydown", handleKeyDown);
-window.addEventListener("keyup", handleKeyUp);
-window.addEventListener("blur", resetKeys);
+newGameButton.addEventListener(
+    "click",
+    startGame
+);
+
+targetButtons.forEach((button) => {
+    button.addEventListener(
+        "click",
+        () => {
+            if (
+                gameState === "ready" ||
+                gameState === "finished"
+            ) {
+                setTarget(button.dataset.target);
+            }
+        }
+    );
+});
+
+window.addEventListener(
+    "keydown",
+    handleKeyDown
+);
+
+window.addEventListener(
+    "keyup",
+    handleKeyUp
+);
+
+window.addEventListener(
+    "blur",
+    resetKeys
+);
+
+window.addEventListener(
+    "resize",
+    resizeCanvas
+);
 
 document.addEventListener(
     "visibilitychange",
     handleVisibilityChange
 );
 
-window.addEventListener(
-    "pointerdown",
-    handlePointerInput
+bindHoldButton(
+    upButton,
+    "up"
 );
 
-bindHoldButton(upButton, "up");
-bindHoldButton(downButton, "down");
+bindHoldButton(
+    downButton,
+    "down"
+);
 
 detectInitialInputMode();
 
-const themeObserver = new MutationObserver(() => {
-    refreshColors();
-    draw();
-});
+const themeObserver =
+    new MutationObserver(() => {
+        refreshColors();
+        draw();
+    });
 
 themeObserver.observe(
     document.documentElement,
@@ -644,8 +1103,11 @@ themeObserver.observe(
 );
 
 refreshColors();
+setTarget(5);
+setTargetControlsDisabled(false);
 resetPaddles();
 resetBall();
 updateScoreboard();
-setGameStatus();
-draw();
+showStartButton();
+updateMobileControls();
+resizeCanvas();

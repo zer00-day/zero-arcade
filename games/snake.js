@@ -1,54 +1,41 @@
 const board = document.getElementById("gameBoard");
-
 const scoreDisplay = document.getElementById("score");
-
 const bestDisplay = document.getElementById("bestScore");
-
 const gameStatus = document.getElementById("gameStatus");
-
 const restartButton = document.getElementById("restartButton");
-
 const controlButtons = Array.from(document.querySelectorAll("[data-direction]"));
-
 const controls = document.querySelector(".snake-controls");
 
 const gridSize = 20;
-
 const CONTROL_FEEDBACK_TIME = 140;
-
 const SWIPE_THRESHOLD = 24;
+const GAME_STEP = 140;
+const INPUT_RESPONSE_DELAY = 55;
+const STORAGE_KEY = "zero-arcade-best-snake";
 
 let snake = [];
-
+let previousSnake = [];
 let food = null;
-
 let direction = { x: 1, y: 0 };
-
 let nextDirection = { x: 1, y: 0 };
-
 let score = 0;
-
-let bestScore = Number(localStorage.getItem("zero-arcade-best-snake")) || 0;
-
-let gameLoop = null;
-
+let bestScore = Number(localStorage.getItem(STORAGE_KEY)) || 0;
+let gameTimer = null;
+let renderLoop = null;
 let gameStarted = false;
-
 let gameOver = false;
-
 let directionLocked = false;
-
 let previousBestScore = bestScore;
-
 let controlFeedbackTimer = null;
-
 let inputMode = "keyboard";
-
 let touchStartX = 0;
-
 let touchStartY = 0;
-
 let touchActive = false;
+let lastStepTime = 0;
+let nextStepTime = 0;
+let renderedCells = new Set();
+let cellWidth = 0;
+let cellHeight = 0;
 
 const directions = {
     up: { x: 0, y: -1 },
@@ -72,7 +59,6 @@ bestDisplay.textContent = bestScore;
 
 function setGameStatus(message = "", type = "") {
     gameStatus.textContent = message;
-
     gameStatus.className = "game-status";
 
     if (message) {
@@ -103,12 +89,12 @@ function showControlFeedback(directionName) {
         return;
     }
 
-    controlButtons.forEach(button => {
+    controlButtons.forEach((button) => {
         button.classList.remove("control-active");
     });
 
     const activeButton = controlButtons.find(
-        button => button.dataset.direction === directionName
+        (button) => button.dataset.direction === directionName
     );
 
     if (!activeButton) {
@@ -127,7 +113,7 @@ function showControlFeedback(directionName) {
 function clearControlFeedback() {
     clearTimeout(controlFeedbackTimer);
 
-    controlButtons.forEach(button => {
+    controlButtons.forEach((button) => {
         button.classList.remove("control-active");
     });
 }
@@ -137,15 +123,40 @@ function createBoard() {
 
     for (let i = 0; i < gridSize * gridSize; i++) {
         const cell = document.createElement("div");
-
         cell.className = "snake-cell";
-
         board.appendChild(cell);
     }
+
+    updateCellSize();
+}
+
+function updateCellSize() {
+    const firstCell = board.children[0];
+
+    if (!firstCell) {
+        return;
+    }
+
+    const rect = firstCell.getBoundingClientRect();
+    cellWidth = rect.width + 2;
+    cellHeight = rect.height + 2;
 }
 
 function getCell(x, y) {
+    if (
+        x < 0 ||
+        x >= gridSize ||
+        y < 0 ||
+        y >= gridSize
+    ) {
+        return null;
+    }
+
     return board.children[y * gridSize + x];
+}
+
+function getCellKey(x, y) {
+    return `${x},${y}`;
 }
 
 function randomFood() {
@@ -153,7 +164,13 @@ function randomFood() {
 
     for (let y = 0; y < gridSize; y++) {
         for (let x = 0; x < gridSize; x++) {
-            if (!snake.some(segment => segment.x === x && segment.y === y)) {
+            if (
+                !snake.some(
+                    (segment) =>
+                        segment.x === x &&
+                        segment.y === y
+                )
+            ) {
                 available.push({ x, y });
             }
         }
@@ -163,22 +180,67 @@ function randomFood() {
         return null;
     }
 
-    return available[Math.floor(Math.random() * available.length)];
+    return available[
+        Math.floor(Math.random() * available.length)
+    ];
 }
 
-function draw() {
-    document.querySelectorAll(".snake-cell").forEach(cell => {
+function resetRenderedCells() {
+    renderedCells.forEach((key) => {
+        const [x, y] = key.split(",").map(Number);
+        const cell = getCell(x, y);
+
+        if (!cell) {
+            return;
+        }
+
         cell.className = "snake-cell";
+        cell.style.transform = "translate3d(0, 0, 0)";
     });
 
+    renderedCells.clear();
+}
+
+function getInterpolationOffset(previous, current, progress) {
+    if (!previous || !current) {
+        return { x: 0, y: 0 };
+    }
+
+    return {
+        x: (previous.x - current.x) * (1 - progress),
+        y: (previous.y - current.y) * (1 - progress)
+    };
+}
+
+function renderSnake(progress = 1) {
+    resetRenderedCells();
+
     snake.forEach((segment, index) => {
+        const previous = previousSnake[index] || segment;
         const cell = getCell(segment.x, segment.y);
 
         if (!cell) {
             return;
         }
 
-        cell.classList.add(index === 0 ? "snake-head" : "snake-body");
+        const offset = getInterpolationOffset(
+            previous,
+            segment,
+            progress
+        );
+
+        cell.classList.add(
+            index === 0
+                ? "snake-head"
+                : "snake-body"
+        );
+
+        cell.style.transform =
+            `translate3d(${offset.x * cellWidth}px, ${offset.y * cellHeight}px, 0)`;
+
+        renderedCells.add(
+            getCellKey(segment.x, segment.y)
+        );
     });
 
     if (food) {
@@ -186,17 +248,78 @@ function draw() {
 
         if (foodCell) {
             foodCell.classList.add("snake-food");
+            renderedCells.add(
+                getCellKey(food.x, food.y)
+            );
         }
     }
 
     scoreDisplay.textContent = score;
-
     bestDisplay.textContent = bestScore;
 }
 
-function prepareGame() {
-    clearInterval(gameLoop);
+function draw() {
+    renderSnake(1);
+}
 
+function renderFrame(timestamp) {
+    if (!renderLoop) {
+        return;
+    }
+
+    const progress = gameStarted && lastStepTime
+        ? Math.min(
+            Math.max(
+                (timestamp - lastStepTime) / GAME_STEP,
+                0
+            ),
+            1
+        )
+        : 1;
+
+    renderSnake(progress);
+    renderLoop = requestAnimationFrame(renderFrame);
+}
+
+function startRenderLoop() {
+    if (renderLoop) {
+        return;
+    }
+
+    renderLoop = requestAnimationFrame(renderFrame);
+}
+
+function stopRenderLoop() {
+    if (!renderLoop) {
+        return;
+    }
+
+    cancelAnimationFrame(renderLoop);
+    renderLoop = null;
+}
+
+function clearGameTimer() {
+    clearTimeout(gameTimer);
+    gameTimer = null;
+}
+
+function scheduleNextStep(delay = GAME_STEP) {
+    clearGameTimer();
+
+    if (!gameStarted || gameOver) {
+        return;
+    }
+
+    nextStepTime = performance.now() + delay;
+
+    gameTimer = setTimeout(() => {
+        gameTimer = null;
+        updateGame();
+    }, delay);
+}
+
+function prepareGame() {
+    clearGameTimer();
     clearControlFeedback();
 
     snake = [
@@ -205,32 +328,33 @@ function prepareGame() {
         { x: 8, y: 10 }
     ];
 
+    previousSnake = snake.map((segment) => ({
+        ...segment
+    }));
+
     direction = { x: 1, y: 0 };
-
     nextDirection = { x: 1, y: 0 };
-
     score = 0;
-
     gameStarted = false;
-
     gameOver = false;
-
     directionLocked = false;
-
     food = randomFood();
+    lastStepTime = 0;
+    nextStepTime = 0;
 
     board.classList.remove("game-over");
-
     setGameStatus("");
 
     restartButton.textContent = "START GAME";
 
+    resetRenderedCells();
+    updateCellSize();
     draw();
+    startRenderLoop();
 }
 
 function startGame() {
-    clearInterval(gameLoop);
-
+    clearGameTimer();
     clearControlFeedback();
 
     previousBestScore = bestScore;
@@ -241,35 +365,41 @@ function startGame() {
         { x: 8, y: 10 }
     ];
 
+    previousSnake = snake.map((segment) => ({
+        ...segment
+    }));
+
     direction = { x: 1, y: 0 };
-
     nextDirection = { x: 1, y: 0 };
-
     score = 0;
-
     gameStarted = true;
-
     gameOver = false;
-
     directionLocked = false;
-
     food = randomFood();
 
     board.classList.remove("game-over");
-
     setGameStatus("");
 
     restartButton.textContent = "NEW GAME";
 
-    draw();
+    lastStepTime = performance.now();
+    nextStepTime = lastStepTime + GAME_STEP;
 
-    gameLoop = setInterval(updateGame, 140);
+    resetRenderedCells();
+    updateCellSize();
+    draw();
+    startRenderLoop();
+    scheduleNextStep(GAME_STEP);
 }
 
 function updateGame() {
     if (!gameStarted || gameOver) {
         return;
     }
+
+    previousSnake = snake.map((segment) => ({
+        ...segment
+    }));
 
     direction = nextDirection;
 
@@ -287,7 +417,6 @@ function updateGame() {
         newHead.y >= gridSize
     ) {
         endGame();
-
         return;
     }
 
@@ -300,13 +429,15 @@ function updateGame() {
         ? snake
         : snake.slice(0, -1);
 
-    const hitsSelf = bodyToCheck.some(segment => {
-        return segment.x === newHead.x && segment.y === newHead.y;
+    const hitsSelf = bodyToCheck.some((segment) => {
+        return (
+            segment.x === newHead.x &&
+            segment.y === newHead.y
+        );
     });
 
     if (hitsSelf) {
         endGame();
-
         return;
     }
 
@@ -319,7 +450,7 @@ function updateGame() {
             bestScore = score;
 
             localStorage.setItem(
-                "zero-arcade-best-snake",
+                STORAGE_KEY,
                 String(bestScore)
             );
         }
@@ -328,7 +459,6 @@ function updateGame() {
 
         if (!food) {
             endGame(true);
-
             return;
         }
     } else {
@@ -336,27 +466,33 @@ function updateGame() {
     }
 
     directionLocked = false;
+    lastStepTime = performance.now();
 
-    draw();
+    scheduleNextStep(GAME_STEP);
 }
 
 function endGame(completed = false) {
-    clearInterval(gameLoop);
+    clearGameTimer();
 
     gameStarted = false;
-
     gameOver = true;
-
     directionLocked = false;
 
     clearControlFeedback();
 
     board.classList.add("game-over");
-
     restartButton.textContent = "NEW GAME";
 
+    renderSnake(1);
+
     if (completed) {
-        setGameStatus(`NEW BEST SCORE ${score}`);
+        const isNewBest = score > previousBestScore;
+
+        if (isNewBest) {
+            setGameStatus(`NEW BEST SCORE ${score}`);
+        } else {
+            setGameStatus(`BOARD CLEARED SCORE ${score}`);
+        }
 
         return;
     }
@@ -366,8 +502,25 @@ function endGame(completed = false) {
     if (isNewBest) {
         setGameStatus(`NEW BEST SCORE ${score}`);
     } else {
-        setGameStatus(`GAME OVER SCORE ${score}`, "danger");
+        setGameStatus(
+            `GAME OVER SCORE ${score}`,
+            "danger"
+        );
     }
+}
+
+function nudgeNextStep() {
+    if (!gameStarted || gameOver || !gameTimer) {
+        return;
+    }
+
+    const remaining = nextStepTime - performance.now();
+
+    if (remaining <= INPUT_RESPONSE_DELAY) {
+        return;
+    }
+
+    scheduleNextStep(INPUT_RESPONSE_DELAY);
 }
 
 function changeDirection(directionName, showFeedback = false) {
@@ -397,13 +550,13 @@ function changeDirection(directionName, showFeedback = false) {
     }
 
     nextDirection = newDirection;
-
     directionLocked = true;
+
+    nudgeNextStep();
 }
 
 function handleKeyboard(event) {
     const key = event.key.toLowerCase();
-
     const directionName = keyboardDirections[key];
 
     if (!directionName) {
@@ -417,12 +570,12 @@ function handleKeyboard(event) {
     }
 
     setInputMode("keyboard");
-
     changeDirection(directionName);
 }
 
 function handleControlClick(event) {
-    const directionName = event.currentTarget.dataset.direction;
+    const directionName =
+        event.currentTarget.dataset.direction;
 
     if (!directions[directionName]) {
         return;
@@ -433,25 +586,25 @@ function handleControlClick(event) {
     }
 
     setInputMode("touch");
-
     changeDirection(directionName, true);
 }
 
 function handleTouchStart(event) {
     setInputMode("touch");
 
-    if (!event.touches.length || !gameStarted || gameOver) {
+    if (
+        !event.touches.length ||
+        !gameStarted ||
+        gameOver
+    ) {
         touchActive = false;
-
         return;
     }
 
     const touch = event.touches[0];
 
     touchStartX = touch.clientX;
-
     touchStartY = touch.clientY;
-
     touchActive = true;
 }
 
@@ -463,7 +616,6 @@ function handleTouchEnd(event) {
         gameOver
     ) {
         touchActive = false;
-
         return;
     }
 
@@ -471,9 +623,11 @@ function handleTouchEnd(event) {
 
     const touch = event.changedTouches[0];
 
-    const deltaX = touch.clientX - touchStartX;
+    const deltaX =
+        touch.clientX - touchStartX;
 
-    const deltaY = touch.clientY - touchStartY;
+    const deltaY =
+        touch.clientY - touchStartY;
 
     if (
         Math.abs(deltaX) < SWIPE_THRESHOLD &&
@@ -499,32 +653,88 @@ function handleTouchCancel() {
     touchActive = false;
 }
 
-document.addEventListener("keydown", handleKeyboard);
+function handleVisibilityChange() {
+    if (!document.hidden && gameStarted) {
+        const now = performance.now();
 
-controlButtons.forEach(button => {
-    button.addEventListener("click", handleControlClick);
+        lastStepTime = now;
+
+        if (nextStepTime < now) {
+            scheduleNextStep(GAME_STEP);
+        }
+    }
+}
+
+function handleResize() {
+    updateCellSize();
+
+    if (!gameStarted) {
+        draw();
+    }
+}
+
+document.addEventListener(
+    "keydown",
+    handleKeyboard
+);
+
+document.addEventListener(
+    "visibilitychange",
+    handleVisibilityChange
+);
+
+window.addEventListener(
+    "resize",
+    handleResize
+);
+
+controlButtons.forEach((button) => {
+    button.addEventListener(
+        "click",
+        handleControlClick
+    );
 });
 
-board.addEventListener("touchstart", handleTouchStart, {
-    passive: true
-});
+board.addEventListener(
+    "touchstart",
+    handleTouchStart,
+    {
+        passive: true
+    }
+);
 
-board.addEventListener("touchend", handleTouchEnd, {
-    passive: true
-});
+board.addEventListener(
+    "touchend",
+    handleTouchEnd,
+    {
+        passive: true
+    }
+);
 
-board.addEventListener("touchcancel", handleTouchCancel, {
-    passive: true
-});
+board.addEventListener(
+    "touchcancel",
+    handleTouchCancel,
+    {
+        passive: true
+    }
+);
 
-restartButton.addEventListener("click", () => {
-    startGame();
-});
+restartButton.addEventListener(
+    "click",
+    () => {
+        startGame();
+    }
+);
 
-const coarsePointer = window.matchMedia("(pointer: coarse)");
+const coarsePointer = window.matchMedia(
+    "(pointer: coarse)"
+);
 
-setInputMode(coarsePointer.matches ? "touch" : "keyboard");
+setInputMode(
+    coarsePointer.matches
+        ? "touch"
+        : "keyboard"
+);
 
 createBoard();
-
 prepareGame();

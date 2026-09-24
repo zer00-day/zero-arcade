@@ -242,11 +242,11 @@ a {
     align-items: center;
     justify-content: center;
     transition:
-        background 0.25s ease,
-        border-color 0.25s ease,
-        transform 0.15s ease,
-        box-shadow 0.25s ease,
-        color 0.25s ease;
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.12s ease,
+        box-shadow 0.2s ease,
+        color 0.2s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
@@ -270,6 +270,36 @@ html[data-theme="dark"] .game-area:hover {
     box-shadow: none;
 }
 
+.game-area.state-idle {
+    background: var(--panel);
+    border-color: var(--area-border);
+    color: var(--text);
+}
+
+.game-area.state-waiting {
+    background: var(--text);
+    border-color: var(--text);
+    color: var(--card);
+}
+
+.game-area.state-ready {
+    background: var(--blue);
+    border-color: var(--blue);
+    color: #ffffff;
+}
+
+.game-area.state-too-soon {
+    background: var(--danger-soft);
+    border-color: var(--danger);
+    color: var(--text);
+}
+
+.game-area.state-result {
+    background: var(--blue-soft);
+    border-color: var(--blue);
+    color: var(--text);
+}
+
 .game-message {
     display: flex;
     align-items: center;
@@ -279,6 +309,13 @@ html[data-theme="dark"] .game-area:hover {
     font-weight: 800;
     letter-spacing: 0.2em;
     line-height: 1;
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+}
+
+.game-area.state-ready .game-message {
+    animation: ready-pulse 0.8s ease-in-out infinite alternate;
 }
 
 .game-hint {
@@ -304,7 +341,8 @@ html[data-theme="dark"] .game-area:hover {
     transform: translateY(-2px);
     transition:
         opacity 0.2s ease,
-        transform 0.2s ease;
+        transform 0.2s ease,
+        color 0.2s ease;
 }
 
 .game-status.visible {
@@ -376,6 +414,16 @@ html[data-theme="dark"] .game-area:hover {
     to {
         opacity: 1;
         transform: translateY(0);
+    }
+}
+
+@keyframes ready-pulse {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.025);
     }
 }
 
@@ -462,5 +510,16 @@ html[data-theme="dark"] .game-area:hover {
 
     .game-area {
         height: 210px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .game-card,
+    .back-link,
+    .game-area,
+    .game-message,
+    .game-status {
+        animation: none;
+        transition: none;
     }
 }

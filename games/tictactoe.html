@@ -10,7 +10,7 @@
 <body>
     <main class="game-page">
         <header class="game-header">
-            <a class="back-link" href="../index.html">
+            <a class="back-link" href="../index.html" aria-label="Back to Arcade">
                 <span class="back-arrow">↙</span>
                 <span>ARCADE</span>
             </a>
@@ -20,7 +20,7 @@
                 <span class="brand-label">ARCADE</span>
             </div>
 
-            <span class="game-status">05 / 05</span>
+            <span class="game-status">05 / 07</span>
         </header>
 
         <section class="game-card" aria-label="Tic-Tac-Toe Game">
@@ -58,6 +58,7 @@
 
                 <div class="difficulty-control" aria-label="AI difficulty">
                     <span class="difficulty-label">AI LEVEL</span>
+
                     <div class="difficulty-options" role="group" aria-label="Select AI level">
                         <button class="difficulty-button" type="button" data-difficulty="easy">EASY</button>
                         <button class="difficulty-button active" type="button" data-difficulty="medium">MEDIUM</button>
@@ -66,25 +67,25 @@
                 </div>
 
                 <div class="turn-status" id="turnStatus" aria-live="polite">
-                    YOUR TURN
+                    READY
                 </div>
 
-                <div class="board" id="board" aria-label="Tic-Tac-Toe board">
-                    <button class="cell" type="button" data-index="0" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="1" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="2" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="3" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="4" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="5" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="6" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="7" aria-label="Empty cell"></button>
-                    <button class="cell" type="button" data-index="8" aria-label="Empty cell"></button>
+                <div class="board" id="board" aria-label="Tic-Tac-Toe board" aria-disabled="true">
+                    <button class="cell" type="button" data-index="0" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="1" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="2" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="3" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="4" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="5" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="6" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="7" aria-label="Empty cell" disabled></button>
+                    <button class="cell" type="button" data-index="8" aria-label="Empty cell" disabled></button>
                 </div>
 
                 <div class="game-result" id="gameResult" aria-live="polite"></div>
 
                 <button class="new-game-button" id="newGameButton" type="button">
-                    NEW GAME
+                    START GAME
                 </button>
             </div>
         </section>

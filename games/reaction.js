@@ -1,19 +1,12 @@
 const gameArea = document.getElementById("gameArea");
-
 const gameMessage = document.getElementById("gameMessage");
-
 const gameStatus = document.getElementById("gameStatus");
-
 const reactionScore = document.getElementById("reactionScore");
-
 const bestScore = document.getElementById("bestScore");
 
 let gameState = "idle";
-
 let startTime = 0;
-
 let timer = null;
-
 let gameSession = 0;
 
 const STORAGE_KEY = "zero-arcade-best-reaction";
@@ -26,7 +19,6 @@ if (Number.isFinite(savedBest) && savedBest > 0) {
 
 function setGameStatus(message = "", type = "") {
     gameStatus.textContent = message;
-
     gameStatus.className = "game-status";
 
     if (message) {
@@ -38,36 +30,41 @@ function setGameStatus(message = "", type = "") {
     }
 }
 
+function updateGameLabel(state) {
+    const labels = {
+        idle: "Start Reaction Test",
+        waiting: "Wait for the blue signal",
+        ready: "Click now",
+        tooSoon: "Try Reaction Test again",
+        result: "Try Reaction Test again"
+    };
+
+    gameArea.setAttribute(
+        "aria-label",
+        labels[state] || "Reaction Test"
+    );
+}
+
 function setState(state) {
     const states = {
         idle: {
-            background: "#fafaf8",
-            borderColor: "#ddddda",
-            color: "#101010",
+            className: "state-idle",
             message: "START"
         },
         waiting: {
-            background: "#101010",
-            borderColor: "#101010",
-            color: "#ffffff",
+            className: "state-waiting",
             message: "WAIT"
         },
         ready: {
-            background: "#3b82f6",
-            borderColor: "#3b82f6",
-            color: "#ffffff",
+            className: "state-ready",
             message: "CLICK"
         },
         tooSoon: {
-            background: "#fff1f1",
-            borderColor: "#ef4444",
-            color: "#101010",
+            className: "state-too-soon",
             message: "TOO SOON"
         },
         result: {
-            background: "#edf4ff",
-            borderColor: "#3b82f6",
-            color: "#101010",
+            className: "state-result",
             message: "NICE"
         }
     };
@@ -80,13 +77,10 @@ function setState(state) {
 
     gameState = state;
 
-    gameArea.style.background = current.background;
-
-    gameArea.style.borderColor = current.borderColor;
-
-    gameArea.style.color = current.color;
-
+    gameArea.className = `game-area ${current.className}`;
     gameMessage.textContent = current.message;
+
+    updateGameLabel(state);
 }
 
 function startGame() {
@@ -97,52 +91,69 @@ function startGame() {
     const currentSession = gameSession;
 
     startTime = 0;
-
     reactionScore.textContent = "— ms";
 
     setGameStatus("");
-
     setState("waiting");
 
-    const delay = Math.floor(Math.random() * 2500) + 1500;
+    const delay =
+        Math.floor(Math.random() * 2500) + 1500;
 
     timer = setTimeout(() => {
-        if (currentSession !== gameSession || gameState !== "waiting") {
+        if (
+            currentSession !== gameSession ||
+            gameState !== "waiting"
+        ) {
             return;
         }
 
         startTime = performance.now();
-
         setState("ready");
     }, delay);
 }
 
 function finishGame() {
-    if (gameState !== "ready" || startTime <= 0) {
+    if (
+        gameState !== "ready" ||
+        startTime <= 0
+    ) {
         return;
     }
 
-    const reactionTime = Math.round(performance.now() - startTime);
+    const reactionTime = Math.round(
+        performance.now() - startTime
+    );
 
-    const currentBest = Number(localStorage.getItem(STORAGE_KEY));
+    const currentBest = Number(
+        localStorage.getItem(STORAGE_KEY)
+    );
 
     const isNewBest =
         !Number.isFinite(currentBest) ||
         currentBest <= 0 ||
         reactionTime < currentBest;
 
-    reactionScore.textContent = `${reactionTime} ms`;
+    reactionScore.textContent =
+        `${reactionTime} ms`;
 
     setState("result");
 
     if (isNewBest) {
-        localStorage.setItem(STORAGE_KEY, String(reactionTime));
+        localStorage.setItem(
+            STORAGE_KEY,
+            String(reactionTime)
+        );
 
-        bestScore.textContent = `${reactionTime} ms`;
+        bestScore.textContent =
+            `${reactionTime} ms`;
 
-        setGameStatus(`NEW BEST ${reactionTime} MS`);
+        setGameStatus(
+            `NEW BEST ${reactionTime} MS`
+        );
     } else {
-        setGameStatus(`REACTION ${reactionTime} MS`);
+        setGameStatus(
+            `REACTION ${reactionTime} MS`
+        );
     }
 
     startTime = 0;
@@ -155,7 +166,6 @@ function handleGameClick() {
         gameState === "tooSoon"
     ) {
         startGame();
-
         return;
     }
 
@@ -163,14 +173,16 @@ function handleGameClick() {
         clearTimeout(timer);
 
         gameSession += 1;
-
         startTime = 0;
 
         reactionScore.textContent = "— ms";
 
         setState("tooSoon");
 
-        setGameStatus("TOO SOON WAIT FOR BLUE", "danger");
+        setGameStatus(
+            "TOO SOON WAIT FOR BLUE",
+            "danger"
+        );
 
         return;
     }
@@ -180,6 +192,9 @@ function handleGameClick() {
     }
 }
 
-gameArea.addEventListener("click", handleGameClick);
+gameArea.addEventListener(
+    "click",
+    handleGameClick
+);
 
 setState("idle");

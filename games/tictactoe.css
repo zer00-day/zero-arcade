@@ -1,4 +1,4 @@
- :root {
+:root {
     --background: #f5f5f3;
     --card: #ffffff;
     --text: #101010;
@@ -13,7 +13,6 @@
     --blue-soft: #edf4ff;
     --blue-border: #cfe0fb;
     --danger: #ef4444;
-    --danger-soft: #fff1f1;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.08);
 }
 
@@ -32,7 +31,6 @@ html[data-theme="dark"] {
     --blue-soft: #17243a;
     --blue-border: #29466f;
     --danger: #ef4444;
-    --danger-soft: #351c1c;
     --shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
 }
 
@@ -108,6 +106,12 @@ a {
     transform: translateX(-2px);
 }
 
+.back-link:focus-visible {
+    outline: 2px solid var(--text);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
 .back-arrow {
     font-size: 13px;
     line-height: 1;
@@ -145,9 +149,6 @@ a {
     font-size: 8px;
     font-weight: 700;
     letter-spacing: 0.15em;
-    transition:
-        border-color 0.25s ease,
-        color 0.25s ease;
 }
 
 .game-card {
@@ -170,7 +171,6 @@ a {
     align-items: center;
     justify-content: space-between;
     border-bottom: 1px solid var(--border);
-    transition: border-color 0.25s ease;
 }
 
 .game-category,
@@ -239,7 +239,8 @@ a {
     justify-content: space-between;
     transition:
         border-color 0.2s ease,
-        background 0.2s ease;
+        background 0.2s ease,
+        transform 0.2s ease;
 }
 
 .score-item:hover {
@@ -248,8 +249,7 @@ a {
 }
 
 .score-item.active {
-    border-color: var(--border);
-    background: var(--panel);
+    transform: translateY(-1px);
 }
 
 .score-item.active .score-label {
@@ -280,9 +280,6 @@ a {
     display: flex;
     align-items: center;
     gap: 12px;
-    transition:
-        border-color 0.2s ease,
-        background 0.2s ease;
 }
 
 .difficulty-label {
@@ -315,12 +312,13 @@ a {
         color 0.2s ease,
         background 0.2s ease,
         border-color 0.2s ease,
-        transform 0.15s ease;
+        transform 0.15s ease,
+        opacity 0.2s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
 
-.difficulty-button:hover:not(.active) {
+.difficulty-button:hover:not(.active):not(:disabled) {
     color: var(--text);
     background: var(--panel-hover);
 }
@@ -331,13 +329,18 @@ a {
     color: var(--blue);
 }
 
-.difficulty-button:active {
+.difficulty-button:active:not(:disabled) {
     transform: scale(0.97);
 }
 
 .difficulty-button:focus-visible {
     outline: 2px solid var(--blue);
     outline-offset: 2px;
+}
+
+.difficulty-button:disabled {
+    cursor: default;
+    opacity: 0.5;
 }
 
 .turn-status {
@@ -374,6 +377,15 @@ a {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+    touch-action: manipulation;
+    user-select: none;
+}
+
+.board[aria-disabled="true"] {
+    opacity: 0.52;
 }
 
 .cell {
@@ -393,9 +405,11 @@ a {
         border-color 0.2s ease,
         color 0.2s ease,
         transform 0.12s ease,
-        box-shadow 0.2s ease;
+        box-shadow 0.2s ease,
+        opacity 0.2s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
+    will-change: transform;
 }
 
 .cell:hover:not(:disabled) {
@@ -423,21 +437,24 @@ html[data-theme="dark"] .cell:hover:not(:disabled) {
     cursor: default;
 }
 
+.cell.x,
+.cell.o {
+    animation: mark-in 0.22s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 .cell.x {
     color: var(--text);
-    animation: mark-in 0.2s ease both;
 }
 
 .cell.o {
     color: var(--blue);
-    animation: mark-in 0.2s ease both;
 }
 
 .cell.winner {
     border-color: var(--blue-border);
     background: var(--blue-soft);
     color: var(--blue);
-    animation: winner-highlight 0.45s ease both;
+    animation: winner-highlight 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .game-result {
@@ -448,42 +465,37 @@ html[data-theme="dark"] .cell:hover:not(:disabled) {
     font-size: 7px;
     font-weight: 700;
     letter-spacing: 0.12em;
+    transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
 }
 
 .new-game-button {
     width: 100%;
     min-height: 48px;
     margin-top: 10px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--text);
     border-radius: 14px;
-    background: #101010;
-    color: #ffffff;
+    background: var(--text);
+    color: var(--card);
     cursor: pointer;
     font-size: 8px;
     font-weight: 800;
     letter-spacing: 0.18em;
     transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        color 0.2s ease,
+        opacity 0.2s ease,
         transform 0.15s ease,
         box-shadow 0.2s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
 }
 
-html[data-theme="dark"] .new-game-button {
-    background: #f5f5f3;
-    color: #101010;
-}
-
 .new-game-button:hover {
-    background: #1c1c1c;
+    opacity: 0.88;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
 }
 
 html[data-theme="dark"] .new-game-button:hover {
-    background: #ffffff;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
@@ -506,11 +518,6 @@ html[data-theme="dark"] .new-game-button:hover {
     font-size: 7px;
     font-weight: 700;
     letter-spacing: 0.15em;
-    transition: color 0.25s ease;
-}
-
-.watermark {
-    color: var(--soft);
 }
 
 @keyframes card-enter {
@@ -526,24 +533,34 @@ html[data-theme="dark"] .new-game-button:hover {
 }
 
 @keyframes mark-in {
-    from {
+    0% {
         opacity: 0;
-        transform: scale(0.72);
+        transform: scale(0.68);
     }
 
-    to {
+    65% {
+        opacity: 1;
+        transform: scale(1.04);
+    }
+
+    100% {
         opacity: 1;
         transform: scale(1);
     }
 }
 
 @keyframes winner-highlight {
-    from {
+    0% {
         opacity: 0.72;
-        transform: scale(0.985);
+        transform: scale(0.97);
     }
 
-    to {
+    65% {
+        opacity: 1;
+        transform: scale(1.025);
+    }
+
+    100% {
         opacity: 1;
         transform: scale(1);
     }

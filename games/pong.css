@@ -63,6 +63,11 @@ a {
     -webkit-tap-highlight-color: transparent;
 }
 
+button {
+    appearance: none;
+    -webkit-appearance: none;
+}
+
 .arcade-page {
     width: min(100% - 32px, 620px);
     min-height: 100vh;
@@ -186,6 +191,11 @@ a {
 
 .game-content {
     padding: 30px;
+    transition: padding-bottom 0.28s ease;
+}
+
+.game-content:has(.restart-button.is-hidden) {
+    padding-bottom: 12px;
 }
 
 .game-heading {
@@ -233,6 +243,8 @@ a {
     aspect-ratio: 8 / 5;
     touch-action: none;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .game-status {
@@ -244,6 +256,9 @@ a {
     font-weight: 800;
     letter-spacing: 0.13em;
     line-height: 1.4;
+    transition:
+        color 0.2s ease,
+        opacity 0.2s ease;
 }
 
 .game-status.win {
@@ -293,6 +308,91 @@ a {
     letter-spacing: -0.03em;
 }
 
+.target-picker {
+    margin-top: 12px;
+    padding: 11px 12px;
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    background: var(--panel);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition:
+        background 0.2s ease,
+        border-color 0.2s ease;
+}
+
+.target-label {
+    flex: 0 0 auto;
+    color: var(--muted);
+    font-size: 7px;
+    font-weight: 800;
+    letter-spacing: 0.16em;
+}
+
+.target-options {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 5px;
+    width: min(100%, 220px);
+}
+
+.target-button {
+    min-width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 9px;
+    background: transparent;
+    color: var(--muted);
+    font-size: 9px;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        transform 0.12s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .target-button:hover {
+        border-color: var(--blue);
+        color: var(--text);
+    }
+
+    .control-button:hover {
+        border-color: var(--blue);
+        background: var(--panel-hover);
+    }
+
+    .restart-button:hover {
+        opacity: 0.88;
+    }
+}
+
+.target-button:active {
+    transform: scale(0.96);
+}
+
+.target-button.is-selected {
+    border-color: var(--blue);
+    background: var(--blue-soft);
+    color: var(--blue);
+}
+
+.target-button:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.target-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 2px;
+}
+
 .pong-meta {
     display: flex;
     align-items: center;
@@ -318,6 +418,7 @@ a {
     gap: 8px;
     width: min(100%, 220px);
     margin: 12px auto 0;
+    isolation: isolate;
 }
 
 .pong-controls[hidden] {
@@ -325,37 +426,51 @@ a {
 }
 
 .control-button {
+    display: block;
+    width: 100%;
     min-height: 50px;
+    margin: 0;
+    padding: 0;
     border: 1px solid var(--border);
     border-radius: 14px;
     background: var(--panel);
     color: var(--text);
     font-size: 19px;
     font-weight: 800;
+    line-height: 1;
     cursor: pointer;
     touch-action: none;
     user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+    -webkit-tap-highlight-color: transparent;
+    box-shadow: none;
+    outline: none;
+    transform: translateZ(0);
+    backface-visibility: hidden;
     transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        transform 0.1s ease;
-}
-
-.control-button:hover {
-    border-color: var(--blue);
-    background: var(--panel-hover);
+        background 0.16s ease,
+        border-color 0.16s ease;
 }
 
 .control-button.control-active {
     border-color: var(--blue);
     background: var(--blue-soft);
-    transform: scale(0.97);
+}
+
+.control-button:focus-visible {
+    outline: 2px solid var(--blue);
+    outline-offset: 3px;
 }
 
 .restart-button {
     width: 100%;
-    min-height: 46px;
+    height: 46px;
+    min-height: 0;
+    max-height: 46px;
     margin-top: 12px;
+    padding: 0;
+    overflow: hidden;
     border: 1px solid var(--text);
     border-radius: 13px;
     background: var(--text);
@@ -363,23 +478,39 @@ a {
     font-size: 9px;
     font-weight: 800;
     letter-spacing: 0.1em;
+    line-height: 1;
     cursor: pointer;
+    opacity: 1;
+    transform: translateY(0);
     transition:
-        transform 0.15s ease,
-        opacity 0.2s ease;
+        height 0.28s ease,
+        max-height 0.28s ease,
+        margin-top 0.28s ease,
+        opacity 0.22s ease,
+        transform 0.28s ease,
+        border-width 0.28s ease;
 }
 
-.restart-button:hover {
-    opacity: 0.88;
+.restart-button.is-hidden {
+    height: 0;
+    min-height: 0;
+    max-height: 0;
+    margin-top: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    border-width: 0;
+    border-color: transparent;
+    font-size: 0;
+    opacity: 0;
+    transform: translateY(-6px);
+    pointer-events: none;
 }
 
 .restart-button:active {
     transform: scale(0.98);
 }
 
-.control-button:focus-visible,
-.restart-button:focus-visible,
-.back-link:focus-visible {
+.restart-button:focus-visible {
     outline: 2px solid var(--blue);
     outline-offset: 3px;
 }
@@ -421,6 +552,10 @@ a {
         padding: 25px;
     }
 
+    .game-content:has(.restart-button.is-hidden) {
+        padding-bottom: 12px;
+    }
+
     .game-heading {
         gap: 11px;
     }
@@ -437,6 +572,26 @@ a {
     .score-item {
         min-height: 62px;
         padding: 12px 13px;
+    }
+
+    .target-picker {
+        margin-top: 11px;
+        padding: 10px 11px;
+    }
+
+    .target-options {
+        width: min(100%, 210px);
+        gap: 4px;
+    }
+
+    .target-button {
+        height: 31px;
+        min-width: 30px;
+    }
+
+    .pong-controls {
+        width: min(100%, 230px);
+        margin-top: 16px;
     }
 }
 
@@ -467,6 +622,10 @@ a {
         padding: 22px;
     }
 
+    .game-content:has(.restart-button.is-hidden) {
+        padding-bottom: 12px;
+    }
+
     .game-heading {
         gap: 9px;
     }
@@ -494,6 +653,26 @@ a {
         padding: 11px 12px;
     }
 
+    .target-picker {
+        margin-top: 10px;
+        padding: 9px 10px;
+        gap: 8px;
+    }
+
+    .target-label {
+        font-size: 6px;
+    }
+
+    .target-options {
+        gap: 3px;
+    }
+
+    .target-button {
+        height: 30px;
+        min-width: 28px;
+        border-radius: 8px;
+    }
+
     .pong-meta {
         margin-top: 8px;
     }
@@ -501,7 +680,7 @@ a {
     .pong-controls {
         width: min(100%, 230px);
         gap: 7px;
-        margin-top: 12px;
+        margin-top: 16px;
     }
 
     .control-button {
@@ -511,12 +690,9 @@ a {
     }
 
     .restart-button {
-        min-height: 44px;
-        margin-top: 12px;
-    }
-
-    .arcade-footer {
-        font-size: 8px;
+        height: 44px;
+        max-height: 44px;
+        border-radius: 12px;
     }
 }
 
@@ -529,8 +705,25 @@ a {
         font-size: 11px;
     }
 
+    .target-picker {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .target-options {
+        width: 100%;
+    }
+
+    .target-button {
+        width: 100%;
+    }
+
     .pong-controls {
         width: 100%;
+    }
+
+    .game-content:has(.restart-button.is-hidden) {
+        padding-bottom: 12px;
     }
 }
 
@@ -538,7 +731,10 @@ a {
     .game-card,
     .back-link,
     .control-button,
-    .restart-button {
+    .target-button,
+    .restart-button,
+    .game-status,
+    .game-content {
         animation: none;
         transition: none;
     }

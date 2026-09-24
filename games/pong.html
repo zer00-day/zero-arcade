@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#f5f5f3">
+    <meta name="theme-color" content="#f5f5f3" id="themeColorMeta">
     <title>Zero Arcade — Pong</title>
-    <link rel="stylesheet" href="pong.css">
+    <link rel="stylesheet" href="pong.css?v=3">
 </head>
 <body>
     <main class="arcade-page">
@@ -20,18 +20,18 @@
                 <span class="brand-label">ARCADE</span>
             </div>
 
-            <span class="status">07 / 07</span>
+            <span class="status">06 / 07</span>
         </header>
 
         <section class="game-card" aria-label="Pong">
             <div class="game-top">
-                <span class="game-category">MINI GAME 07</span>
+                <span class="game-category">MINI GAME 06</span>
                 <span class="game-type">PONG</span>
             </div>
 
             <div class="game-content">
                 <div class="game-heading">
-                    <span class="game-number">07</span>
+                    <span class="game-number">06</span>
                     <div>
                         <h1>Pong</h1>
                         <p>Classic paddle battle.</p>
@@ -56,8 +56,20 @@
                     </div>
                 </div>
 
+                <div class="target-picker">
+                    <span class="target-label">SELECT TARGET</span>
+
+                    <div class="target-options" role="group" aria-label="Select target score">
+                        <button class="target-button" type="button" data-target="1">1</button>
+                        <button class="target-button" type="button" data-target="2">2</button>
+                        <button class="target-button" type="button" data-target="3">3</button>
+                        <button class="target-button" type="button" data-target="4">4</button>
+                        <button class="target-button is-selected" type="button" data-target="5">5</button>
+                    </div>
+                </div>
+
                 <div class="pong-meta">
-                    <span>TARGET <strong>5</strong></span>
+                    <span>TARGET <strong id="targetValue">5</strong></span>
                     <span>SPEED <strong id="speedValue">1.0x</strong></span>
                 </div>
 
@@ -66,7 +78,9 @@
                     <button class="control-button" id="downButton" type="button" aria-label="Move paddle down">↓</button>
                 </div>
 
-                <button class="restart-button" id="newGameButton" type="button" aria-label="Start Pong game">START GAME</button>
+                <button class="restart-button" id="newGameButton" type="button" aria-label="Start Pong game">
+                    START GAME
+                </button>
             </div>
         </section>
 
@@ -77,6 +91,6 @@
     </main>
 
     <script src="../script.js"></script>
-    <script src="pong.js"></script>
+    <script src="pong.js?v=3"></script>
 </body>
 </html>

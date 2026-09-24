@@ -1,6 +1,6 @@
 ﻿const themeToggle = document.getElementById("themeToggle");
 const themeToggleIcon = document.getElementById("themeToggleIcon");
-
+const themeColorMeta = document.getElementById("themeColorMeta");
 const THEME_KEY = "zero-arcade-theme";
 
 function applyTheme(theme) {
@@ -18,6 +18,13 @@ function applyTheme(theme) {
             isDark ? "Switch to light mode" : "Switch to dark mode"
         );
     }
+
+    if (themeColorMeta) {
+        themeColorMeta.setAttribute(
+            "content",
+            isDark ? "#0d0d0d" : "#f5f5f3"
+        );
+    }
 }
 
 function getInitialTheme() {
@@ -31,15 +38,25 @@ function getInitialTheme() {
 }
 
 function toggleTheme() {
-    const currentTheme = document.documentElement.dataset.theme || "light";
-    const nextTheme = currentTheme === "dark" ? "light" : "dark";
+    const currentTheme =
+        document.documentElement.dataset.theme || "light";
 
-    localStorage.setItem(THEME_KEY, nextTheme);
+    const nextTheme =
+        currentTheme === "dark" ? "light" : "dark";
+
+    localStorage.setItem(
+        THEME_KEY,
+        nextTheme
+    );
+
     applyTheme(nextTheme);
 }
 
 applyTheme(getInitialTheme());
 
 if (themeToggle) {
-    themeToggle.addEventListener("click", toggleTheme);
+    themeToggle.addEventListener(
+        "click",
+        toggleTheme
+    );
 }

@@ -1,651 +1,469 @@
+const board = document.getElementById("board");
 const cells = Array.from(document.querySelectorAll(".cell"));
-
+const playerScoreDisplay = document.getElementById("playerScore");
+const drawScoreDisplay = document.getElementById("drawScore");
+const aiScoreDisplay = document.getElementById("aiScore");
+const playerScoreCard = document.getElementById("playerScoreCard");
+const aiScoreCard = document.getElementById("aiScoreCard");
+const difficultyButtons = Array.from(document.querySelectorAll("[data-difficulty]"));
 const turnStatus = document.getElementById("turnStatus");
 const gameResult = document.getElementById("gameResult");
 const newGameButton = document.getElementById("newGameButton");
-const playerScore = document.getElementById("playerScore");
-const drawScore = document.getElementById("drawScore");
-const aiScore = document.getElementById("aiScore");
-const playerScoreCard = document.getElementById("playerScoreCard");
-const aiScoreCard = document.getElementById("aiScoreCard");
-const difficultyButtons = Array.from(document.querySelectorAll(".difficulty-button"));
 
 const PLAYER = "X";
 const AI = "O";
-const EMPTY = "";
+const AI_RESPONSE_DELAY = 360;
 
-const SCORE_KEY = "zero-arcade-tictactoe-score";
-const DIFFICULTY_KEY = "zero-arcade-tictactoe-difficulty";
-
-const winningLines = [
-[0, 1, 2],
-[3, 4, 5],
-[6, 7, 8],
-[0, 3, 6],
-[1, 4, 7],
-[2, 5, 8],
-[0, 4, 8],
-[2, 4, 6]
+const WINNING_COMBINATIONS = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
 ];
 
-const preferredMoves = [4, 0, 2, 6, 8, 1, 3, 5, 7];
-
-let board = Array(9).fill(EMPTY);
-let gameActive = true;
+let boardState = Array(9).fill("");
+let difficulty = "medium";
+let playerScore = 0;
+let drawScore = 0;
+let aiScore = 0;
+let gameStarted = false;
+let gameOver = false;
 let playerTurn = true;
 let aiTimer = null;
-let gameVersion = 0;
-let difficulty = "medium";
 
-let score = {
-player: 0,
-draw: 0,
-ai: 0
-};
+function setTurnStatus(message, type = "") {
+    turnStatus.textContent = message;
+    turnStatus.className = "turn-status";
 
-function loadScore() {
-const defaultScore = {
-player: 0,
-draw: 0,
-ai: 0
-};
-
-try {
-    const rawScore = localStorage.getItem(SCORE_KEY);
-
-    if (!rawScore) {
-        score = defaultScore;
-        updateScore();
-        return;
+    if (type) {
+        turnStatus.classList.add(type);
     }
-
-    const savedScore = JSON.parse(rawScore);
-
-    if (!savedScore || typeof savedScore !== "object") {
-        score = defaultScore;
-        updateScore();
-        return;
-    }
-
-    score = {
-        player: Number.isFinite(Number(savedScore.player))
-            ? Math.max(0, Math.floor(Number(savedScore.player)))
-            : 0,
-        draw: Number.isFinite(Number(savedScore.draw))
-            ? Math.max(0, Math.floor(Number(savedScore.draw)))
-            : 0,
-        ai: Number.isFinite(Number(savedScore.ai))
-            ? Math.max(0, Math.floor(Number(savedScore.ai)))
-            : 0
-    };
-} catch {
-    score = defaultScore;
 }
 
-updateScore();
-
+function setDifficultyButtonsDisabled(disabled) {
+    difficultyButtons.forEach((button) => {
+        button.disabled = disabled;
+    });
 }
 
-function saveScore() {
-try {
-localStorage.setItem(
-SCORE_KEY,
-JSON.stringify({
-player: score.player,
-draw: score.draw,
-ai: score.ai
-})
-);
-} catch {
-}
+function updateScores() {
+    playerScoreDisplay.textContent = String(playerScore);
+    drawScoreDisplay.textContent = String(drawScore);
+    aiScoreDisplay.textContent = String(aiScore);
 }
 
-function updateScore() {
-playerScore.textContent = String(score.player);
-drawScore.textContent = String(score.draw);
-aiScore.textContent = String(score.ai);
+function updateScoreHighlight() {
+    playerScoreCard.classList.toggle(
+        "active",
+        playerTurn && gameStarted && !gameOver
+    );
+
+    aiScoreCard.classList.toggle(
+        "active",
+        !playerTurn && gameStarted && !gameOver
+    );
 }
 
-function loadDifficulty() {
-const savedDifficulty = localStorage.getItem(DIFFICULTY_KEY);
-
-if (
-    savedDifficulty === "easy" ||
-    savedDifficulty === "medium" ||
-    savedDifficulty === "hard"
-) {
-    difficulty = savedDifficulty;
-}
-
-updateDifficultyUI();
-
-}
-
-function saveDifficulty() {
-localStorage.setItem(DIFFICULTY_KEY, difficulty);
-}
-
-function updateDifficultyUI() {
-difficultyButtons.forEach(button => {
-const isActive = button.dataset.difficulty === difficulty;
-
-    button.classList.toggle("active", isActive);
-    button.setAttribute("aria-pressed", String(isActive));
-});
-
-}
-
-function updateTurnUI(state) {
-turnStatus.classList.remove("thinking", "success", "danger");
-playerScoreCard.classList.remove("active");
-aiScoreCard.classList.remove("active");
-
-if (state === "player") {
-    turnStatus.textContent = "YOUR TURN";
-    playerScoreCard.classList.add("active");
-    return;
-}
-
-if (state === "ai") {
-    turnStatus.textContent = "AI THINKING";
-    turnStatus.classList.add("thinking");
-    aiScoreCard.classList.add("active");
-    return;
-}
-
-if (state === "player-win") {
-    turnStatus.textContent = "YOU WIN";
-    turnStatus.classList.add("success");
-    playerScoreCard.classList.add("active");
-    return;
-}
-
-if (state === "ai-win") {
-    turnStatus.textContent = "AI WINS";
-    turnStatus.classList.add("danger");
-    aiScoreCard.classList.add("active");
-    return;
-}
-
-if (state === "draw") {
-    turnStatus.textContent = "DRAW";
-}
-
-}
-
-function updateCells() {
-cells.forEach((cell, index) => {
-const value = board[index];
+function updateCell(index) {
+    const cell = cells[index];
+    const value = boardState[index];
 
     cell.textContent = value;
-    cell.disabled = !gameActive || !playerTurn || value !== EMPTY;
-    cell.classList.remove("x", "o", "winner");
+    cell.className = "cell";
 
     if (value === PLAYER) {
         cell.classList.add("x");
-    }
-
-    if (value === AI) {
+        cell.setAttribute("aria-label", "X");
+    } else if (value === AI) {
         cell.classList.add("o");
+        cell.setAttribute("aria-label", "O");
+    } else {
+        cell.setAttribute("aria-label", "Empty cell");
     }
 
-    cell.setAttribute(
-        "aria-label",
-        value === EMPTY ? "Empty cell" : `Cell ${index + 1}, ${value}`
-    );
-});
-
+    cell.disabled =
+        !gameStarted ||
+        gameOver ||
+        !playerTurn ||
+        Boolean(value);
 }
 
-function getWinner(currentBoard) {
-for (const line of winningLines) {
-const [a, b, c] = line;
+function updateBoard() {
+    cells.forEach((_, index) => {
+        updateCell(index);
+    });
 
-    if (
-        currentBoard[a] !== EMPTY &&
-        currentBoard[a] === currentBoard[b] &&
-        currentBoard[a] === currentBoard[c]
-    ) {
+    board.setAttribute(
+        "aria-disabled",
+        String(!gameStarted || gameOver)
+    );
+}
+
+function resetBoard() {
+    clearTimeout(aiTimer);
+    aiTimer = null;
+
+    boardState = Array(9).fill("");
+    gameOver = false;
+    playerTurn = true;
+    gameResult.textContent = "";
+
+    updateBoard();
+    updateScoreHighlight();
+}
+
+function startGame() {
+    resetBoard();
+
+    gameStarted = true;
+    gameOver = false;
+    playerTurn = true;
+
+    newGameButton.textContent = "NEW GAME";
+
+    setDifficultyButtonsDisabled(true);
+    setTurnStatus("YOUR TURN");
+
+    updateBoard();
+    updateScoreHighlight();
+}
+
+function finishGame(result, winningCombination = []) {
+    clearTimeout(aiTimer);
+    aiTimer = null;
+
+    gameOver = true;
+    gameStarted = false;
+
+    winningCombination.forEach((index) => {
+        cells[index].classList.add("winner");
+    });
+
+    if (result === "player") {
+        playerScore += 1;
+        gameResult.textContent = "YOU WIN";
+        setTurnStatus("YOU WIN", "success");
+    } else if (result === "ai") {
+        aiScore += 1;
+        gameResult.textContent = "AI WINS";
+        setTurnStatus("AI WINS", "danger");
+    } else {
+        drawScore += 1;
+        gameResult.textContent = "DRAW";
+        setTurnStatus("DRAW");
+    }
+
+    updateScores();
+    updateBoard();
+    updateScoreHighlight();
+
+    setDifficultyButtonsDisabled(false);
+    newGameButton.textContent = "NEW GAME";
+}
+
+function getWinner(state) {
+    for (const combination of WINNING_COMBINATIONS) {
+        const [a, b, c] = combination;
+
+        if (
+            state[a] &&
+            state[a] === state[b] &&
+            state[a] === state[c]
+        ) {
+            return {
+                winner: state[a],
+                combination
+            };
+        }
+    }
+
+    if (state.every(Boolean)) {
         return {
-            winner: currentBoard[a],
-            line
+            winner: "draw",
+            combination: []
         };
     }
-}
 
-if (currentBoard.every(cell => cell !== EMPTY)) {
-    return {
-        winner: "draw",
-        line: []
-    };
-}
-
-return null;
-
-}
-
-function getAvailableMoves(currentBoard) {
-const moves = [];
-
-for (let index = 0; index < currentBoard.length; index++) {
-    if (currentBoard[index] === EMPTY) {
-        moves.push(index);
-    }
-}
-
-return moves;
-
-}
-
-function evaluateBoard(currentBoard, depth) {
-const result = getWinner(currentBoard);
-
-if (!result) {
     return null;
 }
 
-if (result.winner === AI) {
-    return 10 - depth;
+function checkGameEnd() {
+    const result = getWinner(boardState);
+
+    if (!result) {
+        return false;
+    }
+
+    finishGame(
+        result.winner === PLAYER
+            ? "player"
+            : result.winner === AI
+                ? "ai"
+                : "draw",
+        result.combination
+    );
+
+    return true;
 }
 
-if (result.winner === PLAYER) {
-    return depth - 10;
+function makePlayerMove(index) {
+    if (
+        !gameStarted ||
+        gameOver ||
+        !playerTurn ||
+        boardState[index]
+    ) {
+        return;
+    }
+
+    boardState[index] = PLAYER;
+    updateCell(index);
+
+    if (checkGameEnd()) {
+        return;
+    }
+
+    playerTurn = false;
+
+    updateBoard();
+    updateScoreHighlight();
+    setTurnStatus("AI THINKING", "thinking");
+
+    aiTimer = setTimeout(() => {
+        aiTimer = null;
+        makeAiMove();
+    }, AI_RESPONSE_DELAY);
 }
 
-return 0;
-
+function getEmptyCells(state) {
+    return state
+        .map((value, index) => value ? null : index)
+        .filter((index) => index !== null);
 }
 
-function minimax(
-currentBoard,
-depth,
-maximizing,
-alpha,
-beta,
-depthLimit = Infinity
-) {
-const terminalScore = evaluateBoard(currentBoard, depth);
+function findWinningMove(mark) {
+    const emptyCells = getEmptyCells(boardState);
 
-if (terminalScore !== null) {
-    return terminalScore;
+    for (const index of emptyCells) {
+        boardState[index] = mark;
+
+        if (getWinner(boardState)?.winner === mark) {
+            boardState[index] = "";
+            return index;
+        }
+
+        boardState[index] = "";
+    }
+
+    return null;
 }
 
-if (depth >= depthLimit) {
-    return 0;
+function getRandomMove() {
+    const emptyCells = getEmptyCells(boardState);
+
+    if (!emptyCells.length) {
+        return null;
+    }
+
+    return emptyCells[Math.floor(Math.random() * emptyCells.length)];
 }
 
-const moves = getAvailableMoves(currentBoard);
+function getMediumMove() {
+    const winningMove = findWinningMove(AI);
 
-if (maximizing) {
-    let bestScore = -Infinity;
+    if (winningMove !== null) {
+        return winningMove;
+    }
 
-    for (const move of moves) {
-        currentBoard[move] = AI;
+    const blockingMove = findWinningMove(PLAYER);
 
-        const moveScore = minimax(
-            currentBoard,
-            depth + 1,
-            false,
-            alpha,
-            beta,
-            depthLimit
+    if (blockingMove !== null) {
+        return blockingMove;
+    }
+
+    if (!boardState[4]) {
+        return 4;
+    }
+
+    const corners = [0, 2, 6, 8].filter(
+        (index) => !boardState[index]
+    );
+
+    if (corners.length) {
+        return corners[
+            Math.floor(Math.random() * corners.length)
+        ];
+    }
+
+    return getRandomMove();
+}
+
+function minimax(state, depth, maximizing) {
+    const result = getWinner(state);
+
+    if (result?.winner === AI) {
+        return 10 - depth;
+    }
+
+    if (result?.winner === PLAYER) {
+        return depth - 10;
+    }
+
+    if (result?.winner === "draw") {
+        return 0;
+    }
+
+    const emptyCells = getEmptyCells(state);
+
+    if (maximizing) {
+        let bestScore = -Infinity;
+
+        for (const index of emptyCells) {
+            state[index] = AI;
+
+            bestScore = Math.max(
+                bestScore,
+                minimax(state, depth + 1, false)
+            );
+
+            state[index] = "";
+        }
+
+        return bestScore;
+    }
+
+    let bestScore = Infinity;
+
+    for (const index of emptyCells) {
+        state[index] = PLAYER;
+
+        bestScore = Math.min(
+            bestScore,
+            minimax(state, depth + 1, true)
         );
 
-        currentBoard[move] = EMPTY;
-
-        bestScore = Math.max(bestScore, moveScore);
-        alpha = Math.max(alpha, bestScore);
-
-        if (beta <= alpha) {
-            break;
-        }
+        state[index] = "";
     }
 
     return bestScore;
 }
 
-let bestScore = Infinity;
+function getHardMove() {
+    const emptyCells = getEmptyCells(boardState);
 
-for (const move of moves) {
-    currentBoard[move] = PLAYER;
-
-    const moveScore = minimax(
-        currentBoard,
-        depth + 1,
-        true,
-        alpha,
-        beta,
-        depthLimit
-    );
-
-    currentBoard[move] = EMPTY;
-
-    bestScore = Math.min(bestScore, moveScore);
-    beta = Math.min(beta, bestScore);
-
-    if (beta <= alpha) {
-        break;
-    }
-}
-
-return bestScore;
-
-}
-
-function findTacticalMove() {
-const moves = getAvailableMoves(board);
-
-for (const move of moves) {
-    board[move] = AI;
-
-    if (getWinner(board)?.winner === AI) {
-        board[move] = EMPTY;
-        return move;
+    if (!emptyCells.length) {
+        return null;
     }
 
-    board[move] = EMPTY;
-}
+    let bestMove = emptyCells[0];
+    let bestScore = -Infinity;
 
-for (const move of moves) {
-    board[move] = PLAYER;
+    for (const index of emptyCells) {
+        boardState[index] = AI;
 
-    if (getWinner(board)?.winner === PLAYER) {
-        board[move] = EMPTY;
-        return move;
+        const score = minimax(boardState, 0, false);
+
+        boardState[index] = "";
+
+        if (score > bestScore) {
+            bestScore = score;
+            bestMove = index;
+        }
     }
 
-    board[move] = EMPTY;
+    return bestMove;
 }
 
-return -1;
-
-}
-
-function findBestMove(depthLimit = Infinity) {
-const moves = getAvailableMoves(board);
-
-if (!moves.length) {
-    return -1;
-}
-
-let bestScore = -Infinity;
-let bestMoves = [];
-
-for (const move of moves) {
-    board[move] = AI;
-
-    const moveScore = minimax(
-        board,
-        0,
-        false,
-        -Infinity,
-        Infinity,
-        depthLimit
-    );
-
-    board[move] = EMPTY;
-
-    if (moveScore > bestScore) {
-        bestScore = moveScore;
-        bestMoves = [move];
-    } else if (moveScore === bestScore) {
-        bestMoves.push(move);
+function getAiMove() {
+    if (difficulty === "easy") {
+        return getRandomMove();
     }
-}
 
-for (const preferredMove of preferredMoves) {
-    if (bestMoves.includes(preferredMove)) {
-        return preferredMove;
+    if (difficulty === "hard") {
+        return getHardMove();
     }
+
+    return getMediumMove();
 }
 
-return bestMoves[0];
-
-}
-
-function findRandomMove(moves) {
-if (!moves.length) {
-return -1;
-}
-
-return moves[Math.floor(Math.random() * moves.length)];
-
-}
-
-function findEasyMove() {
-const moves = getAvailableMoves(board);
-
-if (!moves.length) {
-    return -1;
-}
-
-const tacticalMove = findTacticalMove();
-
-if (tacticalMove !== -1 && Math.random() < 0.25) {
-    return tacticalMove;
-}
-
-if (Math.random() < 0.35) {
-    return findBestMove(1);
-}
-
-return findRandomMove(moves);
-
-}
-
-function findMediumMove() {
-const moves = getAvailableMoves(board);
-
-if (!moves.length) {
-    return -1;
-}
-
-const tacticalMove = findTacticalMove();
-
-if (tacticalMove !== -1) {
-    return tacticalMove;
-}
-
-if (Math.random() < 0.25) {
-    return findRandomMove(moves);
-}
-
-return findBestMove(3);
-
-}
-
-function findAIMove() {
-if (difficulty === "easy") {
-return findEasyMove();
-}
-
-if (difficulty === "hard") {
-    return findBestMove();
-}
-
-return findMediumMove();
-
-}
-
-function highlightWinningLine(line) {
-line.forEach(index => {
-cells[index].classList.add("winner");
-});
-}
-
-function finishGame(result) {
-if (!gameActive) {
-return;
-}
-
-gameActive = false;
-playerTurn = false;
-
-if (result.winner === PLAYER) {
-    score.player += 1;
-    gameResult.textContent = "NICE MOVE. YOU BEAT THE AI.";
-    updateTurnUI("player-win");
-} else if (result.winner === AI) {
-    score.ai += 1;
-    gameResult.textContent = "THE AI FOUND THE WINNING LINE.";
-    updateTurnUI("ai-win");
-} else if (result.winner === "draw") {
-    score.draw += 1;
-    gameResult.textContent = "NO WINNER. PERFECT DEFENSE.";
-    updateTurnUI("draw");
-}
-
-saveScore();
-updateScore();
-updateCells();
-
-if (result.line.length) {
-    highlightWinningLine(result.line);
-}
-
-}
-
-function checkGameState() {
-const result = getWinner(board);
-
-if (result) {
-    finishGame(result);
-    return true;
-}
-
-return false;
-
-}
-
-function makePlayerMove(index) {
-if (
-!gameActive ||
-!playerTurn ||
-!Number.isInteger(index) ||
-index < 0 ||
-index >= board.length ||
-board[index] !== EMPTY
-) {
-return;
-}
-
-board[index] = PLAYER;
-playerTurn = false;
-
-updateCells();
-
-if (checkGameState()) {
-    return;
-}
-
-updateTurnUI("ai");
-
-clearTimeout(aiTimer);
-
-const currentVersion = gameVersion;
-
-aiTimer = setTimeout(() => {
-    if (currentVersion !== gameVersion) {
+function makeAiMove() {
+    if (!gameStarted || gameOver || playerTurn) {
         return;
     }
 
-    makeAIMove(currentVersion);
-}, 320);
+    const move = getAiMove();
 
+    if (move === null) {
+        return;
+    }
+
+    boardState[move] = AI;
+    updateCell(move);
+
+    if (checkGameEnd()) {
+        return;
+    }
+
+    playerTurn = true;
+
+    updateBoard();
+    updateScoreHighlight();
+    setTurnStatus("YOUR TURN");
 }
 
-function makeAIMove(currentVersion) {
-if (
-currentVersion !== gameVersion ||
-!gameActive ||
-playerTurn
-) {
-return;
+function handleDifficulty(event) {
+    if (gameStarted && !gameOver) {
+        return;
+    }
+
+    const selectedDifficulty =
+        event.currentTarget.dataset.difficulty;
+
+    if (!selectedDifficulty) {
+        return;
+    }
+
+    difficulty = selectedDifficulty;
+
+    difficultyButtons.forEach((button) => {
+        button.classList.toggle(
+            "active",
+            button.dataset.difficulty === difficulty
+        );
+    });
 }
 
-const move = findAIMove();
-
-if (move === -1 || board[move] !== EMPTY) {
-    return;
+function handleNewGame() {
+    startGame();
 }
 
-board[move] = AI;
-playerTurn = true;
-
-updateCells();
-
-if (checkGameState()) {
-    return;
-}
-
-updateTurnUI("player");
-
-}
-
-function resetBoard() {
-clearTimeout(aiTimer);
-
-aiTimer = null;
-gameVersion += 1;
-board = Array(9).fill(EMPTY);
-gameActive = true;
-playerTurn = true;
-gameResult.textContent = "";
-
-updateTurnUI("player");
-updateCells();
-
-}
-
-function setDifficulty(nextDifficulty) {
-if (
-nextDifficulty !== "easy" &&
-nextDifficulty !== "medium" &&
-nextDifficulty !== "hard"
-) {
-return;
-}
-
-if (difficulty === nextDifficulty) {
-    return;
-}
-
-difficulty = nextDifficulty;
-
-saveDifficulty();
-updateDifficultyUI();
-resetBoard();
-
-}
-
-function handleDifficultyClick(event) {
-const nextDifficulty = event.currentTarget.dataset.difficulty;
-
-setDifficulty(nextDifficulty);
-
-}
-
-function handleCellClick(event) {
-const index = Number(event.currentTarget.dataset.index);
-
-if (!Number.isInteger(index)) {
-    return;
-}
-
-makePlayerMove(index);
-
-}
-
-difficultyButtons.forEach(button => {
-button.addEventListener("click", handleDifficultyClick);
+cells.forEach((cell) => {
+    cell.addEventListener("click", () => {
+        const index = Number(cell.dataset.index);
+        makePlayerMove(index);
+    });
 });
 
-cells.forEach(cell => {
-cell.addEventListener("click", handleCellClick);
+difficultyButtons.forEach((button) => {
+    button.addEventListener("click", handleDifficulty);
 });
 
-newGameButton.addEventListener("click", resetBoard);
+newGameButton.addEventListener("click", handleNewGame);
 
-loadScore();
-loadDifficulty();
+updateScores();
+setDifficultyButtonsDisabled(false);
 resetBoard();
+
+gameStarted = false;
+gameOver = false;
+playerTurn = true;
+
+newGameButton.textContent = "START GAME";
+setTurnStatus("READY");
+
+updateBoard();
+updateScoreHighlight();
