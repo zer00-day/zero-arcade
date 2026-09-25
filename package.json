@@ -1,0 +1,24 @@
+{
+  "name": "zero-arcade",
+  "version": "1.0.0",
+  "description": "",
+  "main": "script.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/zer00-day/zero-arcade.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/zer00-day/zero-arcade/issues"
+  },
+  "homepage": "https://github.com/zer00-day/zero-arcade#readme",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
