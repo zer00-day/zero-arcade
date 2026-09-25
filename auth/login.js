@@ -4,11 +4,167 @@ const loginMessage = document.getElementById("loginMessage");
 const loginCard = document.querySelector(".login-card");
 const passwordInput = document.getElementById("password");
 const passwordToggle = document.getElementById("passwordToggle");
+const emailInput = document.getElementById("email");
 
-const DEMO_EMAIL = "player@zeroarcade.com";
-const DEMO_PASSWORD = "zero123";
+const PLAYER_EMAIL = "player@zeroarcade.com";
+const DEVELOPER_EMAIL = "zero.dev@zeroarcade.com";
+const DEVELOPER_PASSWORD = "zero@2006";
+
+const PLAYER_ACCOUNT_KEY = "zero-arcade-player-account";
+const PLAYER_PASSWORD_LENGTH = 14;
 
 let loadingInterval = null;
+let redirectTimeout = null;
+
+function generateRandomPassword() {
+    const letters = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const numbers = "23456789";
+    const alphabet = letters + numbers;
+
+    const requiredCharacters = [
+        letters.charAt(Math.floor(Math.random() * letters.length)),
+        letters.charAt(Math.floor(Math.random() * letters.length)),
+        numbers.charAt(Math.floor(Math.random() * numbers.length))
+    ];
+
+    const remainingLength =
+        PLAYER_PASSWORD_LENGTH - requiredCharacters.length;
+
+    if (window.crypto?.getRandomValues) {
+        const values = new Uint32Array(remainingLength);
+        window.crypto.getRandomValues(values);
+
+        for (let index = 0; index < values.length; index += 1) {
+            requiredCharacters.push(
+                alphabet.charAt(values[index] % alphabet.length)
+            );
+        }
+    } else {
+        for (let index = 0; index < remainingLength; index += 1) {
+            requiredCharacters.push(
+                alphabet.charAt(
+                    Math.floor(Math.random() * alphabet.length)
+                )
+            );
+        }
+    }
+
+    for (let index = requiredCharacters.length - 1; index > 0; index -= 1) {
+        let randomIndex;
+
+        if (window.crypto?.getRandomValues) {
+            const values = new Uint32Array(1);
+            window.crypto.getRandomValues(values);
+            randomIndex = values[0] % (index + 1);
+        } else {
+            randomIndex = Math.floor(Math.random() * (index + 1));
+        }
+
+        const temporary = requiredCharacters[index];
+        requiredCharacters[index] = requiredCharacters[randomIndex];
+        requiredCharacters[randomIndex] = temporary;
+    }
+
+    return requiredCharacters.join("");
+}
+
+function isValidStoredPlayerAccount(account) {
+    return Boolean(
+        account &&
+        typeof account === "object" &&
+        account.email === PLAYER_EMAIL &&
+        typeof account.password === "string" &&
+        account.password.length === PLAYER_PASSWORD_LENGTH
+    );
+}
+
+function getPlayerAccount() {
+    try {
+        const storedAccount = JSON.parse(
+            localStorage.getItem(PLAYER_ACCOUNT_KEY) || "null"
+        );
+
+        if (isValidStoredPlayerAccount(storedAccount)) {
+            return storedAccount;
+        }
+    } catch {
+        return null;
+    }
+
+    return null;
+}
+
+function createPlayerAccount() {
+    const account = {
+        email: PLAYER_EMAIL,
+        password: generateRandomPassword(),
+        createdAt: new Date().toISOString()
+    };
+
+    try {
+        localStorage.setItem(
+            PLAYER_ACCOUNT_KEY,
+            JSON.stringify(account)
+        );
+        return account;
+    } catch {
+        return null;
+    }
+}
+
+function getOrCreatePlayerAccount() {
+    const existingAccount = getPlayerAccount();
+
+    if (existingAccount) {
+        return existingAccount;
+    }
+
+    return createPlayerAccount();
+}
+
+function initializePlayerCredentials() {
+    if (!emailInput || !passwordInput) {
+        return;
+    }
+
+    const account = getOrCreatePlayerAccount();
+
+    if (!account) {
+        passwordInput.value = "";
+        return;
+    }
+
+    if (!emailInput.value.trim()) {
+        emailInput.value = PLAYER_EMAIL;
+    }
+
+    passwordInput.value = account.password;
+}
+
+function hasProfile(email) {
+    if (!email) {
+        return false;
+    }
+
+    try {
+        const profile = JSON.parse(
+            localStorage.getItem(getProfileKey(email)) || "null"
+        );
+
+        return Boolean(
+            profile &&
+            typeof profile === "object" &&
+            profile.tag &&
+            typeof profile.tag === "string"
+        );
+    } catch {
+        return false;
+    }
+}
+
+function getAccountRole(email) {
+    return email === DEVELOPER_EMAIL ? "DEVELOPER" : "PLAYER";
+}
 
 function setMessage(message, type = "") {
     if (!loginMessage) {
@@ -50,6 +206,11 @@ function triggerLoginError(message) {
         loginForm.classList.add("is-error");
     }
 
+    if (loginButton) {
+        loginButton.disabled = false;
+        loginButton.classList.remove("is-loading", "is-granted");
+    }
+
     setMessage(message, "error");
 }
 
@@ -60,6 +221,13 @@ function stopLoadingAnimation() {
     }
 }
 
+function clearRedirectTimer() {
+    if (redirectTimeout) {
+        window.clearTimeout(redirectTimeout);
+        redirectTimeout = null;
+    }
+}
+
 function showLoadingState() {
     if (!loginButton) {
         return;
@@ -67,8 +235,8 @@ function showLoadingState() {
 
     stopLoadingAnimation();
 
-    loginButton.classList.add("is-loading");
     loginButton.classList.remove("is-granted");
+    loginButton.classList.add("is-loading");
     loginButton.disabled = true;
 
     const buttonText = loginButton.querySelector(".login-button-text");
@@ -100,6 +268,7 @@ function createUnlockFrame() {
     }
 
     const frame = document.createElement("div");
+
     frame.className = "unlock-frame";
     frame.setAttribute("aria-hidden", "true");
 
@@ -117,7 +286,7 @@ function createUnlockFrame() {
     loginCard.appendChild(frame);
 }
 
-function showGrantedState() {
+function showGrantedState(role) {
     if (!loginButton || !loginCard) {
         return;
     }
@@ -126,37 +295,117 @@ function showGrantedState() {
 
     loginButton.classList.remove("is-loading");
     loginButton.classList.add("is-granted");
+
     loginCard.classList.add("is-success");
 
     const buttonText = loginButton.querySelector(".login-button-text");
     const buttonArrow = loginButton.querySelector(".login-button-arrow");
 
     if (buttonText) {
-        buttonText.textContent = "ACCESS GRANTED";
+        buttonText.textContent =
+            role === "DEVELOPER"
+                ? "DEVELOPER ACCESS"
+                : "ACCESS GRANTED";
     }
 
     if (buttonArrow) {
-        buttonArrow.textContent = "\u2713";
+        buttonArrow.textContent = "✓";
     }
 
-    setMessage("WELCOME TO ZERO ARCADE", "success");
+    setMessage(
+        role === "DEVELOPER"
+            ? "WELCOME, DEVELOPER"
+            : "WELCOME TO ZERO ARCADE",
+        "success"
+    );
+
     createUnlockFrame();
 }
 
-function startUnlockSequence() {
+function getDestination(email) {
+    if (hasProfile(email)) {
+        return "../index.html";
+    }
+
+    return "../profile/index.html";
+}
+
+function startUnlockSequence(email) {
     if (!loginCard) {
         return;
     }
 
+    clearRedirectTimer();
+
     loginCard.classList.add("is-unlocking");
 
     window.setTimeout(() => {
-        loginCard.classList.add("is-exiting");
+        if (loginCard) {
+            loginCard.classList.add("is-exiting");
+        }
     }, 940);
 
-    window.setTimeout(() => {
-        window.location.replace("../index.html");
+    redirectTimeout = window.setTimeout(() => {
+        window.location.replace(getDestination(email));
     }, 1320);
+}
+
+function authenticate(email, password) {
+    if (email === PLAYER_EMAIL) {
+        const playerAccount = getPlayerAccount();
+
+        if (
+            playerAccount &&
+            password === playerAccount.password
+        ) {
+            return "PLAYER";
+        }
+
+        return null;
+    }
+
+    if (
+        email === DEVELOPER_EMAIL &&
+        password === DEVELOPER_PASSWORD
+    ) {
+        return "DEVELOPER";
+    }
+
+    return null;
+}
+
+function resetLoginState() {
+    stopLoadingAnimation();
+    clearRedirectTimer();
+
+    if (loginCard) {
+        loginCard.classList.remove(
+            "is-error",
+            "is-success",
+            "is-unlocking",
+            "is-exiting"
+        );
+    }
+
+    if (loginButton) {
+        loginButton.disabled = false;
+
+        loginButton.classList.remove(
+            "is-loading",
+            "is-granted"
+        );
+
+        const buttonText = loginButton.querySelector(".login-button-text");
+        const buttonArrow = loginButton.querySelector(".login-button-arrow");
+
+        if (buttonText) {
+            buttonText.textContent = "LOGIN";
+        }
+
+        if (buttonArrow) {
+            buttonArrow.textContent = "↗";
+        }
+    }
 }
 
 function handleLogin(event) {
@@ -169,29 +418,38 @@ function handleLogin(event) {
         return;
     }
 
-    const email = document.getElementById("email")?.value.trim();
-    const password = passwordInput?.value;
+    resetLoginState();
+    setMessage("");
+
+    const email = emailInput?.value.trim().toLowerCase() || "";
+    const password = passwordInput?.value || "";
 
     if (!email || !password) {
         triggerLoginError("ENTER YOUR LOGIN DETAILS");
         return;
     }
 
-    if (email !== DEMO_EMAIL || password !== DEMO_PASSWORD) {
+    const role = authenticate(email, password);
+
+    if (!role) {
         triggerLoginError("INVALID CREDENTIALS");
         return;
     }
 
+    const accountRole = getAccountRole(email);
+
     sessionStorage.setItem(ACCESS_KEY, "granted");
+    sessionStorage.setItem(ACCOUNT_KEY, email);
+    sessionStorage.setItem(ROLE_KEY, accountRole);
 
     showLoadingState();
 
     window.setTimeout(() => {
-        showGrantedState();
+        showGrantedState(role);
     }, 1050);
 
     window.setTimeout(() => {
-        startUnlockSequence();
+        startUnlockSequence(email);
     }, 1250);
 }
 
@@ -202,3 +460,6 @@ if (passwordToggle) {
 if (loginForm) {
     loginForm.addEventListener("submit", handleLogin);
 }
+
+resetLoginState();
+initializePlayerCredentials();

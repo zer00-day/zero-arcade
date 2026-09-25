@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#f5f5f3" id="themeColorMeta">
+    <title>Zero Arcade — Profile</title>
+    <link rel="stylesheet" href="profile.css">
+</head>
+<body>
+    <main class="profile-page">
+        <header class="profile-header">
+            <a class="back-link" id="profileBackLink" href="../auth/login.html" aria-label="Back to Login">
+                <span class="back-arrow" aria-hidden="true">↙</span>
+                <span id="profileBackLabel">LOGIN</span>
+            </a>
+
+            <div class="brand">
+                <span class="brand-name">zero</span>
+                <span class="brand-label">ARCADE</span>
+            </div>
+
+            <div class="header-actions">
+                <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to dark mode">
+                    <span class="theme-toggle-icon" id="themeToggleIcon">☾</span>
+                </button>
+
+                <span class="status" id="profileStatus">PROFILE</span>
+            </div>
+        </header>
+
+        <section class="profile-card" aria-label="Zero Arcade Player Profile">
+            <div class="profile-top">
+                <span id="profileTopLabel">ARCADE PROFILE</span>
+                <span id="profileTopState">FIRST SETUP</span>
+            </div>
+
+            <div class="profile-content">
+                <div class="profile-identity">
+                    <button class="profile-avatar" id="profileAvatar" type="button" aria-label="Choose profile photo">
+                        <span class="avatar-fallback" id="profileAvatarFallback">Z</span>
+                        <img id="profileAvatarImage" alt="" hidden>
+                        <span class="avatar-edit" id="avatarEdit" aria-hidden="true">↗</span>
+                    </button>
+
+                    <input id="avatarInput" type="file" accept="image/*" hidden>
+
+                    <div class="profile-identity-copy">
+                        <span class="identity-label">PLAYER IDENTITY</span>
+
+                        <div class="profile-name-row">
+                            <h1 id="profileTag">YOUR TAG</h1>
+                            <span class="role-badge" id="profileRole">PLAYER</span>
+                        </div>
+
+                        <p id="profileIdentityText">
+                            Create your identity before entering Zero Arcade.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="avatar-actions" id="avatarActions" hidden>
+                    <button id="changeAvatarButton" type="button">CHANGE PHOTO</button>
+                    <button id="removeAvatarButton" type="button">REMOVE</button>
+                </div>
+
+                <div class="avatar-limit-status" id="avatarLimitStatus" hidden>
+                    <span id="avatarLimitLabel">AVATAR CHANGES</span>
+                    <span id="avatarLimitValue"></span>
+                </div>
+
+                <div class="profile-details">
+                    <div class="detail-row">
+                        <div class="detail-copy">
+                            <span class="detail-label">ROLE</span>
+                            <strong id="roleValue">PLAYER</strong>
+                        </div>
+
+                        <span class="detail-mark">R</span>
+                    </div>
+
+                    <div class="detail-row">
+                        <div class="detail-copy">
+                            <span class="detail-label">PLAYER ID</span>
+                            <strong id="playerIdValue">ZA-000000</strong>
+                        </div>
+
+                        <span class="detail-mark">ID</span>
+                    </div>
+                </div>
+
+                <div class="profile-divider"></div>
+
+                <form class="profile-form" id="profileForm">
+                    <div class="form-heading" id="formHeading">
+                        <span class="form-label">ARCADE TAG</span>
+
+                        <p id="formDescription">
+                            Choose the name you want to use inside the Arcade.
+                        </p>
+                    </div>
+
+                    <div class="input-wrap" id="inputWrap">
+                        <input
+                            id="arcadeTag"
+                            name="arcadeTag"
+                            type="text"
+                            maxlength="16"
+                            autocomplete="off"
+                            spellcheck="false"
+                            placeholder="ENTER TAG"
+                            aria-describedby="tagHint profileMessage"
+                            required
+                        >
+                    </div>
+
+                    <div class="field-guidance" id="tagHint">
+                        <strong>3–16 CHARACTERS</strong>
+                        <span>A–Z · a–z · 0–9 · _</span>
+                        <span>No spaces or special characters</span>
+                    </div>
+
+                    <button class="save-button" type="submit">
+                        <span class="save-button-content">
+                            <span id="saveButtonLabel">ENTER ARCADE</span>
+                            <span class="save-arrow" aria-hidden="true">↗</span>
+                        </span>
+                    </button>
+
+                    <p class="profile-message" id="profileMessage" aria-live="polite"></p>
+                </form>
+            </div>
+        </section>
+
+        <footer class="profile-footer">
+            <span>ZERO ARCADE</span>
+            <span>PLAYER IDENTITY</span>
+        </footer>
+    </main>
+
+    <script src="../script.js"></script>
+    <script src="profile.js"></script>
+</body>
+</html>

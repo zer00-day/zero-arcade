@@ -3,14 +3,145 @@ const themeToggleIcon = document.getElementById("themeToggleIcon");
 const themeColorMeta = document.getElementById("themeColorMeta");
 const logoutButton = document.getElementById("logoutButton");
 const arcadePage = document.querySelector(".arcade-page");
+const hubCard = document.querySelector(".hub-card");
 
 const THEME_KEY = "zero-arcade-theme";
 const ACCESS_KEY = "zero-arcade-access";
+const ACCOUNT_KEY = "zero-arcade-account";
+const ROLE_KEY = "zero-arcade-role";
+const PROFILE_PREFIX = "zero-arcade-profile:";
+
+function getProfileKey(email) {
+    return `${PROFILE_PREFIX}${email.toLowerCase()}`;
+}
+
+function getCurrentAccountEmail() {
+    return sessionStorage.getItem(ACCOUNT_KEY)?.trim().toLowerCase() || "";
+}
+
+function getCurrentProfile() {
+    const email = getCurrentAccountEmail();
+
+    if (!email) {
+        return null;
+    }
+
+    try {
+        const profile = JSON.parse(
+            localStorage.getItem(getProfileKey(email)) || "null"
+        );
+
+        if (!profile || typeof profile !== "object" || !profile.tag) {
+            return null;
+        }
+
+        return profile;
+    } catch {
+        return null;
+    }
+}
+
+function hasCurrentProfile() {
+    return Boolean(getCurrentProfile());
+}
+
+function getProfileInitial(tag) {
+    return (tag || "Z").charAt(0).toUpperCase();
+}
+
+function updateProfileAvatar(profile) {
+    const profileEntryAvatar = document.getElementById("profileEntryAvatar");
+    const profileEntryImage = document.getElementById("profileEntryImage");
+    const profileEntryFallback = profileEntryAvatar?.querySelector(
+        ".profile-entry-fallback"
+    );
+
+    if (!profileEntryAvatar || !profileEntryImage || !profileEntryFallback) {
+        return;
+    }
+
+    const hasAvatar = Boolean(profile?.avatar);
+
+    profileEntryFallback.textContent = getProfileInitial(profile?.tag);
+
+    if (hasAvatar) {
+        profileEntryImage.src = profile.avatar;
+        profileEntryImage.hidden = false;
+        profileEntryFallback.hidden = true;
+    } else {
+        profileEntryImage.removeAttribute("src");
+        profileEntryImage.hidden = true;
+        profileEntryFallback.hidden = false;
+    }
+}
+
+function updateProfileEntry() {
+    const profileEntry = document.getElementById("profileEntry");
+    const profileEntryTitle = document.getElementById("profileEntryTitle");
+    const profileEntrySubtitle = document.getElementById("profileEntrySubtitle");
+
+    if (!profileEntry || !profileEntryTitle || !profileEntrySubtitle) {
+        return;
+    }
+
+    const profile = getCurrentProfile();
+    const role = sessionStorage.getItem(ROLE_KEY) || "PLAYER";
+
+    updateProfileAvatar(profile);
+
+    if (!profile) {
+        profileEntryTitle.textContent =
+            role === "DEVELOPER"
+                ? "Developer Profile"
+                : "Create Arcade Profile";
+
+        profileEntrySubtitle.textContent =
+            role === "DEVELOPER"
+                ? "View your verified developer identity."
+                : "Set your Arcade Tag before you start.";
+
+        return;
+    }
+
+    profileEntryTitle.textContent = profile.tag;
+
+    if (role === "DEVELOPER") {
+        profileEntrySubtitle.textContent =
+            "Verified developer identity.";
+        return;
+    }
+
+    profileEntrySubtitle.textContent =
+        "View or update your Arcade identity.";
+}
+
+function protectArcade() {
+    if (!hubCard) {
+        return;
+    }
+
+    const access = sessionStorage.getItem(ACCESS_KEY);
+    const email = getCurrentAccountEmail();
+
+    if (access !== "granted" || !email) {
+        window.location.replace("auth/login.html");
+        return;
+    }
+
+    if (!hasCurrentProfile()) {
+        window.location.replace("profile/index.html");
+        return;
+    }
+
+    updateProfileEntry();
+}
 
 function applyTheme(theme) {
     const isDark = theme === "dark";
 
-    document.documentElement.dataset.theme = isDark ? "dark" : "light";
+    document.documentElement.dataset.theme = isDark
+        ? "dark"
+        : "light";
 
     if (themeToggleIcon) {
         themeToggleIcon.textContent = isDark ? "\u2600" : "\u263E";
@@ -19,7 +150,9 @@ function applyTheme(theme) {
     if (themeToggle) {
         themeToggle.setAttribute(
             "aria-label",
-            isDark ? "Switch to light mode" : "Switch to dark mode"
+            isDark
+                ? "Switch to light mode"
+                : "Switch to dark mode"
         );
     }
 
@@ -46,13 +179,11 @@ function toggleTheme() {
         document.documentElement.dataset.theme || "light";
 
     const nextTheme =
-        currentTheme === "dark" ? "light" : "dark";
+        currentTheme === "dark"
+            ? "light"
+            : "dark";
 
-    localStorage.setItem(
-        THEME_KEY,
-        nextTheme
-    );
-
+    localStorage.setItem(THEME_KEY, nextTheme);
     applyTheme(nextTheme);
 }
 
@@ -65,6 +196,8 @@ function handleLogout() {
     arcadePage?.classList.add("is-logging-out");
 
     sessionStorage.removeItem(ACCESS_KEY);
+    sessionStorage.removeItem(ACCOUNT_KEY);
+    sessionStorage.removeItem(ROLE_KEY);
 
     window.setTimeout(() => {
         window.location.replace("auth/login.html");
@@ -72,17 +205,12 @@ function handleLogout() {
 }
 
 applyTheme(getInitialTheme());
+protectArcade();
 
 if (themeToggle) {
-    themeToggle.addEventListener(
-        "click",
-        toggleTheme
-    );
+    themeToggle.addEventListener("click", toggleTheme);
 }
 
 if (logoutButton) {
-    logoutButton.addEventListener(
-        "click",
-        handleLogout
-    );
+    logoutButton.addEventListener("click", handleLogout);
 }
