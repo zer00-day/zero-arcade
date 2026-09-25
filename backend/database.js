@@ -80,7 +80,13 @@ db.exec(`
         ON game_scores(account_id, game_key);
 `);
 
-console.log("Zero Arcade database initialized.");
-console.log(`Database: ${databasePath}`);
+if (require.main === module) {
+    console.log("Zero Arcade database initialized.");
+    console.log(`Database: ${databasePath}`);
+    db.close();
+}
 
-db.close();
+module.exports = {
+    db,
+    databasePath
+};
