@@ -29,7 +29,6 @@ const saveButton = profileForm?.querySelector(".save-button");
 const saveButtonLabel = document.getElementById("saveButtonLabel");
 const profileCard = document.querySelector(".profile-card");
 
-const DEVELOPER_EMAIL = "zero.dev@zeroarcade.com";
 const DEVELOPER_TAG = "Zero DEV";
 const DEVELOPER_ROLE = "DEVELOPER";
 const DEVELOPER_PLAYER_ID = "ZA-000001";
@@ -39,30 +38,56 @@ const AVATAR_QUALITY = 0.84;
 const INITIAL_AVATAR_CHANGES = 3;
 const AVATAR_COOLDOWN_DAYS = 7;
 
+let currentSession = null;
+let authReady = false;
 let isSaving = false;
 let isProcessingAvatar = false;
 let isLeavingPage = false;
 
 function getAccountEmail() {
-    return sessionStorage.getItem(ACCOUNT_KEY) || "";
+    return (
+        currentSession?.account?.email
+            ?.trim()
+            .toLowerCase() || ""
+    );
+}
+
+function getAccountRole() {
+    return (
+        currentSession?.account?.role ||
+        ""
+    );
 }
 
 function getProfileKeyForCurrentAccount() {
-    const email = getAccountEmail();
-    return email ? getProfileKey(email) : "";
+    const email =
+        getAccountEmail();
+
+    return email
+        ? getProfileKey(email)
+        : "";
 }
 
 function loadProfile() {
-    const key = getProfileKeyForCurrentAccount();
+    const key =
+        getProfileKeyForCurrentAccount();
 
     if (!key) {
         return null;
     }
 
     try {
-        const profile = JSON.parse(localStorage.getItem(key) || "null");
+        const profile =
+            JSON.parse(
+                localStorage.getItem(
+                    key
+                ) || "null"
+            );
 
-        if (!profile || typeof profile !== "object") {
+        if (
+            !profile ||
+            typeof profile !== "object"
+        ) {
             return null;
         }
 
@@ -73,14 +98,19 @@ function loadProfile() {
 }
 
 function saveProfile(profile) {
-    const key = getProfileKeyForCurrentAccount();
+    const key =
+        getProfileKeyForCurrentAccount();
 
     if (!key) {
         return false;
     }
 
     try {
-        localStorage.setItem(key, JSON.stringify(profile));
+        localStorage.setItem(
+            key,
+            JSON.stringify(profile)
+        );
+
         return true;
     } catch {
         return false;
@@ -88,36 +118,63 @@ function saveProfile(profile) {
 }
 
 function isDeveloperAccount() {
-    return getAccountEmail().toLowerCase() === DEVELOPER_EMAIL;
+    return (
+        getAccountRole() ===
+        DEVELOPER_ROLE
+    );
 }
 
 function getInitial(tag) {
-    return (tag || "Z").charAt(0).toUpperCase();
+    return (tag || "Z")
+        .charAt(0)
+        .toUpperCase();
 }
 
 function getAvatarState(profile) {
-    const used = Number.isFinite(profile?.avatarChangesUsed)
-        ? Math.max(0, Math.floor(profile.avatarChangesUsed))
-        : 0;
+    const used =
+        Number.isFinite(
+            profile?.avatarChangesUsed
+        )
+            ? Math.max(
+                0,
+                Math.floor(
+                    profile.avatarChangesUsed
+                )
+            )
+            : 0;
 
-    const nextChangeAt = Number.isFinite(profile?.avatarNextChangeAt)
-        ? profile.avatarNextChangeAt
-        : 0;
+    const nextChangeAt =
+        Number.isFinite(
+            profile?.avatarNextChangeAt
+        )
+            ? profile.avatarNextChangeAt
+            : 0;
 
     const now = Date.now();
 
-    if (used >= INITIAL_AVATAR_CHANGES && nextChangeAt && now >= nextChangeAt) {
+    if (
+        used >=
+            INITIAL_AVATAR_CHANGES &&
+        nextChangeAt &&
+        now >= nextChangeAt
+    ) {
         return {
-            used: INITIAL_AVATAR_CHANGES,
+            used:
+                INITIAL_AVATAR_CHANGES,
             available: 1,
             nextChangeAt: 0
         };
     }
 
-    if (used < INITIAL_AVATAR_CHANGES) {
+    if (
+        used <
+        INITIAL_AVATAR_CHANGES
+    ) {
         return {
             used,
-            available: INITIAL_AVATAR_CHANGES - used,
+            available:
+                INITIAL_AVATAR_CHANGES -
+                used,
             nextChangeAt: 0
         };
     }
@@ -129,20 +186,36 @@ function getAvatarState(profile) {
     };
 }
 
-function formatRemainingTime(timestamp) {
+function formatRemainingTime(
+    timestamp
+) {
     if (!timestamp) {
         return "";
     }
 
-    const remaining = Math.max(0, timestamp - Date.now());
+    const remaining =
+        Math.max(
+            0,
+            timestamp - Date.now()
+        );
 
     if (!remaining) {
         return "";
     }
 
-    const totalHours = Math.ceil(remaining / (1000 * 60 * 60));
-    const days = Math.floor(totalHours / 24);
-    const hours = totalHours % 24;
+    const totalHours =
+        Math.ceil(
+            remaining /
+            (1000 * 60 * 60)
+        );
+
+    const days =
+        Math.floor(
+            totalHours / 24
+        );
+
+    const hours =
+        totalHours % 24;
 
     if (days > 0) {
         return hours > 0
@@ -150,34 +223,52 @@ function formatRemainingTime(timestamp) {
             : `${days}D`;
     }
 
-    return `${Math.max(1, hours)}H`;
+    return `${Math.max(
+        1,
+        hours
+    )}H`;
 }
 
 function updateAvatarLimitView(profile) {
-    if (!avatarLimitStatus || !avatarLimitValue) {
+    if (
+        !avatarLimitStatus ||
+        !avatarLimitValue
+    ) {
         return;
     }
 
-    if (isDeveloperAccount() || !profile) {
-        avatarLimitStatus.hidden = true;
+    if (
+        isDeveloperAccount() ||
+        !profile
+    ) {
+        avatarLimitStatus.hidden =
+            true;
+
         return;
     }
 
-    const state = getAvatarState(profile);
+    const state =
+        getAvatarState(profile);
 
-    avatarLimitStatus.hidden = !profile.avatar;
+    avatarLimitStatus.hidden =
+        !profile.avatar;
 
     if (state.available > 0) {
         avatarLimitValue.textContent =
             `${state.available} CHANGE${state.available === 1 ? "" : "S"} AVAILABLE`;
+
         return;
     }
 
-    const remaining = formatRemainingTime(state.nextChangeAt);
+    const remaining =
+        formatRemainingTime(
+            state.nextChangeAt
+        );
 
-    avatarLimitValue.textContent = remaining
-        ? `NEXT CHANGE IN ${remaining}`
-        : "NEXT CHANGE AVAILABLE SOON";
+    avatarLimitValue.textContent =
+        remaining
+            ? `NEXT CHANGE IN ${remaining}`
+            : "NEXT CHANGE AVAILABLE SOON";
 }
 
 function triggerAvatarTransition() {
@@ -185,12 +276,20 @@ function triggerAvatarTransition() {
         return;
     }
 
-    profileAvatar.classList.remove("is-changing");
+    profileAvatar.classList.remove(
+        "is-changing"
+    );
+
     void profileAvatar.offsetWidth;
-    profileAvatar.classList.add("is-changing");
+
+    profileAvatar.classList.add(
+        "is-changing"
+    );
 
     window.setTimeout(() => {
-        profileAvatar.classList.remove("is-changing");
+        profileAvatar.classList.remove(
+            "is-changing"
+        );
     }, 450);
 }
 
@@ -199,130 +298,221 @@ function triggerIdentityTransition() {
         return;
     }
 
-    profileTag.classList.remove("is-changing");
+    profileTag.classList.remove(
+        "is-changing"
+    );
+
     void profileTag.offsetWidth;
-    profileTag.classList.add("is-changing");
+
+    profileTag.classList.add(
+        "is-changing"
+    );
 
     window.setTimeout(() => {
-        profileTag.classList.remove("is-changing");
+        profileTag.classList.remove(
+            "is-changing"
+        );
     }, 280);
 }
 
-function updateAvatarView(tag, avatar = "") {
-    const initial = getInitial(tag);
-    const hasAvatar = Boolean(avatar);
+function updateAvatarView(
+    tag,
+    avatar = ""
+) {
+    const initial =
+        getInitial(tag);
+
+    const hasAvatar =
+        Boolean(avatar);
 
     if (profileAvatarFallback) {
-        profileAvatarFallback.textContent = initial;
-        profileAvatarFallback.hidden = hasAvatar;
+        profileAvatarFallback.textContent =
+            initial;
+
+        profileAvatarFallback.hidden =
+            hasAvatar;
     }
 
     if (profileAvatarImage) {
         if (hasAvatar) {
-            profileAvatarImage.src = avatar;
-            profileAvatarImage.hidden = false;
+            profileAvatarImage.src =
+                avatar;
+
+            profileAvatarImage.hidden =
+                false;
         } else {
-            profileAvatarImage.removeAttribute("src");
-            profileAvatarImage.hidden = true;
+            profileAvatarImage.removeAttribute(
+                "src"
+            );
+
+            profileAvatarImage.hidden =
+                true;
         }
     }
 
     if (profileAvatar) {
-        profileAvatar.disabled = isProcessingAvatar || hasAvatar;
+        profileAvatar.disabled =
+            isProcessingAvatar ||
+            hasAvatar;
+
         profileAvatar.setAttribute(
             "aria-label",
-            hasAvatar ? "Profile photo" : "Choose profile photo"
+            hasAvatar
+                ? "Profile photo"
+                : "Choose profile photo"
         );
-        profileAvatar.classList.toggle("has-photo", hasAvatar);
+
+        profileAvatar.classList.toggle(
+            "has-photo",
+            hasAvatar
+        );
     }
 
     if (avatarEdit) {
-        avatarEdit.hidden = hasAvatar;
+        avatarEdit.hidden =
+            hasAvatar;
     }
 
     if (avatarActions) {
-        avatarActions.hidden = !hasAvatar;
+        avatarActions.hidden =
+            !hasAvatar;
     }
 
-    updateAvatarLimitView(loadProfile());
+    updateAvatarLimitView(
+        loadProfile()
+    );
 }
 
-function updateIdentity(tag, role, playerId, avatar = "") {
-    const displayTag = tag || "YOUR TAG";
+function updateIdentity(
+    tag,
+    role,
+    playerId,
+    avatar = ""
+) {
+    const displayTag =
+        tag || "YOUR TAG";
 
     if (profileTag) {
-        profileTag.textContent = displayTag;
+        profileTag.textContent =
+            displayTag;
+
         triggerIdentityTransition();
     }
 
-    updateAvatarView(tag, avatar);
+    updateAvatarView(
+        tag,
+        avatar
+    );
 
     if (profileRole) {
-        profileRole.textContent = role;
+        profileRole.textContent =
+            role;
+
         profileRole.classList.toggle(
             "is-developer",
-            role === DEVELOPER_ROLE
+            role ===
+                DEVELOPER_ROLE
         );
     }
 
     if (roleValue) {
-        roleValue.textContent = role;
+        roleValue.textContent =
+            role;
     }
 
     if (playerIdValue) {
-        playerIdValue.textContent = playerId || "ZA-000000";
+        playerIdValue.textContent =
+            playerId ||
+            "ZA-000000";
     }
 }
 
-function showMessage(message, type = "") {
+function showMessage(
+    message,
+    type = ""
+) {
     if (!profileMessage) {
         return;
     }
 
-    profileMessage.className = "profile-message";
-    profileMessage.textContent = message;
-    profileMessage.hidden = !message;
+    profileMessage.className =
+        "profile-message";
+
+    profileMessage.textContent =
+        message;
+
+    profileMessage.hidden =
+        !message;
 
     if (type) {
-        profileMessage.classList.add(`is-${type}`);
+        profileMessage.classList.add(
+            `is-${type}`
+        );
     }
 
     if (message) {
         void profileMessage.offsetWidth;
-        profileMessage.classList.add("is-entering");
+
+        profileMessage.classList.add(
+            "is-entering"
+        );
     }
 }
 
-function setProfileTopState(value, transition = true) {
+function setProfileTopState(
+    value,
+    transition = true
+) {
     if (!profileTopState) {
         return;
     }
 
-    profileTopState.innerHTML = value;
+    profileTopState.innerHTML =
+        value;
 
     if (!transition) {
         return;
     }
 
-    profileTopState.classList.remove("is-transitioning");
+    profileTopState.classList.remove(
+        "is-transitioning"
+    );
+
     void profileTopState.offsetWidth;
-    profileTopState.classList.add("is-transitioning");
+
+    profileTopState.classList.add(
+        "is-transitioning"
+    );
 
     window.setTimeout(() => {
-        profileTopState.classList.remove("is-transitioning");
+        profileTopState.classList.remove(
+            "is-transitioning"
+        );
     }, 420);
 }
 
-function setSavingState(saving, label = "") {
+function setSavingState(
+    saving,
+    label = ""
+) {
     isSaving = saving;
 
     if (saveButton) {
-        saveButton.disabled = saving;
-        saveButton.classList.toggle("is-saving", saving);
+        saveButton.disabled =
+            saving;
+
+        saveButton.classList.toggle(
+            "is-saving",
+            saving
+        );
     }
 
-    if (saveButtonLabel && label) {
-        saveButtonLabel.textContent = label;
+    if (
+        saveButtonLabel &&
+        label
+    ) {
+        saveButtonLabel.textContent =
+            label;
     }
 }
 
@@ -331,30 +521,47 @@ function setSuccessButtonState() {
         return;
     }
 
-    saveButton.classList.remove("is-saving");
-    saveButton.classList.add("is-success");
+    saveButton.classList.remove(
+        "is-saving"
+    );
+
+    saveButton.classList.add(
+        "is-success"
+    );
 
     window.setTimeout(() => {
-        saveButton?.classList.remove("is-success");
+        saveButton?.classList.remove(
+            "is-success"
+        );
     }, 700);
 }
 
-function setAvatarProcessing(processing) {
-    isProcessingAvatar = processing;
+function setAvatarProcessing(
+    processing
+) {
+    isProcessingAvatar =
+        processing;
 
-    const profile = loadProfile();
-    const hasAvatar = Boolean(profile?.avatar);
+    const profile =
+        loadProfile();
+
+    const hasAvatar =
+        Boolean(profile?.avatar);
 
     if (profileAvatar) {
-        profileAvatar.disabled = processing || hasAvatar;
+        profileAvatar.disabled =
+            processing ||
+            hasAvatar;
     }
 
     if (changeAvatarButton) {
-        changeAvatarButton.disabled = processing;
+        changeAvatarButton.disabled =
+            processing;
     }
 
     if (removeAvatarButton) {
-        removeAvatarButton.disabled = processing;
+        removeAvatarButton.disabled =
+            processing;
     }
 
     if (!processing) {
@@ -366,29 +573,44 @@ function setAvatarProcessing(processing) {
 }
 
 function isTagTaken(tag) {
-    const normalizedTag = tag.toLowerCase();
-    const currentKey = getProfileKeyForCurrentAccount();
+    const normalizedTag =
+        tag.toLowerCase();
 
-    for (let index = 0; index < localStorage.length; index += 1) {
-        const key = localStorage.key(index);
+    const currentKey =
+        getProfileKeyForCurrentAccount();
+
+    for (
+        let index = 0;
+        index < localStorage.length;
+        index += 1
+    ) {
+        const key =
+            localStorage.key(index);
 
         if (
             !key ||
-            !key.startsWith(PROFILE_PREFIX) ||
+            !key.startsWith(
+                PROFILE_PREFIX
+            ) ||
             key === currentKey
         ) {
             continue;
         }
 
         try {
-            const profile = JSON.parse(
-                localStorage.getItem(key) || "null"
-            );
+            const profile =
+                JSON.parse(
+                    localStorage.getItem(
+                        key
+                    ) || "null"
+                );
 
             if (
                 profile?.tag &&
-                typeof profile.tag === "string" &&
-                profile.tag.toLowerCase() === normalizedTag
+                typeof profile.tag ===
+                    "string" &&
+                profile.tag.toLowerCase() ===
+                    normalizedTag
             ) {
                 return true;
             }
@@ -400,26 +622,42 @@ function isTagTaken(tag) {
     return false;
 }
 
-function isPlayerIdTaken(playerId) {
-    const currentKey = getProfileKeyForCurrentAccount();
+function isPlayerIdTaken(
+    playerId
+) {
+    const currentKey =
+        getProfileKeyForCurrentAccount();
 
-    for (let index = 0; index < localStorage.length; index += 1) {
-        const key = localStorage.key(index);
+    for (
+        let index = 0;
+        index < localStorage.length;
+        index += 1
+    ) {
+        const key =
+            localStorage.key(index);
 
         if (
             !key ||
-            !key.startsWith(PROFILE_PREFIX) ||
+            !key.startsWith(
+                PROFILE_PREFIX
+            ) ||
             key === currentKey
         ) {
             continue;
         }
 
         try {
-            const profile = JSON.parse(
-                localStorage.getItem(key) || "null"
-            );
+            const profile =
+                JSON.parse(
+                    localStorage.getItem(
+                        key
+                    ) || "null"
+                );
 
-            if (profile?.playerId === playerId) {
+            if (
+                profile?.playerId ===
+                playerId
+            ) {
                 return true;
             }
         } catch {
@@ -431,140 +669,237 @@ function isPlayerIdTaken(playerId) {
 }
 
 function createPlayerId() {
-    const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const alphabet =
+        "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-    for (let attempt = 0; attempt < 100; attempt += 1) {
+    for (
+        let attempt = 0;
+        attempt < 100;
+        attempt += 1
+    ) {
         let suffix = "";
 
-        if (window.crypto?.getRandomValues) {
-            const values = new Uint32Array(6);
-            window.crypto.getRandomValues(values);
+        if (
+            window.crypto?.getRandomValues
+        ) {
+            const values =
+                new Uint32Array(6);
 
-            for (let index = 0; index < values.length; index += 1) {
-                suffix += alphabet.charAt(
-                    values[index] % alphabet.length
-                );
+            window.crypto.getRandomValues(
+                values
+            );
+
+            for (
+                let index = 0;
+                index < values.length;
+                index += 1
+            ) {
+                suffix +=
+                    alphabet.charAt(
+                        values[index] %
+                        alphabet.length
+                    );
             }
         } else {
-            for (let index = 0; index < 6; index += 1) {
-                suffix += alphabet.charAt(
-                    Math.floor(Math.random() * alphabet.length)
-                );
+            for (
+                let index = 0;
+                index < 6;
+                index += 1
+            ) {
+                suffix +=
+                    alphabet.charAt(
+                        Math.floor(
+                            Math.random() *
+                            alphabet.length
+                        )
+                    );
             }
         }
 
-        const playerId = `ZA-${suffix}`;
+        const playerId =
+            `ZA-${suffix}`;
 
-        if (!isPlayerIdTaken(playerId)) {
+        if (
+            !isPlayerIdTaken(
+                playerId
+            )
+        ) {
             return playerId;
         }
     }
 
-    let fallback = Date.now()
-        .toString(36)
-        .toUpperCase()
-        .slice(-6);
+    let fallback =
+        Date.now()
+            .toString(36)
+            .toUpperCase()
+            .slice(-6);
 
-    while (fallback.length < 6) {
-        fallback = `0${fallback}`;
+    while (
+        fallback.length < 6
+    ) {
+        fallback =
+            `0${fallback}`;
     }
 
     return `ZA-${fallback}`;
 }
 
 function processAvatar(file) {
-    return new Promise((resolve, reject) => {
-        if (
-            !file ||
-            !file.type ||
-            !file.type.startsWith("image/")
-        ) {
-            reject(new Error("INVALID_IMAGE"));
-            return;
+    return new Promise(
+        (resolve, reject) => {
+            if (
+                !file ||
+                !file.type ||
+                !file.type.startsWith(
+                    "image/"
+                )
+            ) {
+                reject(
+                    new Error(
+                        "INVALID_IMAGE"
+                    )
+                );
+
+                return;
+            }
+
+            const reader =
+                new FileReader();
+
+            reader.onload = () => {
+                const image =
+                    new Image();
+
+                image.onload = () => {
+                    const sourceSize =
+                        Math.min(
+                            image.naturalWidth,
+                            image.naturalHeight
+                        );
+
+                    if (!sourceSize) {
+                        reject(
+                            new Error(
+                                "INVALID_IMAGE"
+                            )
+                        );
+
+                        return;
+                    }
+
+                    const sourceX =
+                        (
+                            image.naturalWidth -
+                            sourceSize
+                        ) / 2;
+
+                    const sourceY =
+                        (
+                            image.naturalHeight -
+                            sourceSize
+                        ) / 2;
+
+                    const canvas =
+                        document.createElement(
+                            "canvas"
+                        );
+
+                    canvas.width =
+                        MAX_AVATAR_SIZE;
+
+                    canvas.height =
+                        MAX_AVATAR_SIZE;
+
+                    const context =
+                        canvas.getContext(
+                            "2d"
+                        );
+
+                    if (!context) {
+                        reject(
+                            new Error(
+                                "PROCESSING_FAILED"
+                            )
+                        );
+
+                        return;
+                    }
+
+                    context.imageSmoothingEnabled =
+                        true;
+
+                    context.imageSmoothingQuality =
+                        "high";
+
+                    context.drawImage(
+                        image,
+                        sourceX,
+                        sourceY,
+                        sourceSize,
+                        sourceSize,
+                        0,
+                        0,
+                        MAX_AVATAR_SIZE,
+                        MAX_AVATAR_SIZE
+                    );
+
+                    const result =
+                        canvas.toDataURL(
+                            "image/jpeg",
+                            AVATAR_QUALITY
+                        );
+
+                    if (
+                        !result ||
+                        result.length < 100
+                    ) {
+                        reject(
+                            new Error(
+                                "PROCESSING_FAILED"
+                            )
+                        );
+
+                        return;
+                    }
+
+                    resolve(result);
+                };
+
+                image.onerror = () => {
+                    reject(
+                        new Error(
+                            "INVALID_IMAGE"
+                        )
+                    );
+                };
+
+                image.src =
+                    reader.result;
+            };
+
+            reader.onerror = () => {
+                reject(
+                    new Error(
+                        "READ_FAILED"
+                    )
+                );
+            };
+
+            reader.readAsDataURL(
+                file
+            );
         }
-
-        const reader = new FileReader();
-
-        reader.onload = () => {
-            const image = new Image();
-
-            image.onload = () => {
-                const sourceSize = Math.min(
-                    image.naturalWidth,
-                    image.naturalHeight
-                );
-
-                if (!sourceSize) {
-                    reject(new Error("INVALID_IMAGE"));
-                    return;
-                }
-
-                const sourceX =
-                    (image.naturalWidth - sourceSize) / 2;
-
-                const sourceY =
-                    (image.naturalHeight - sourceSize) / 2;
-
-                const canvas = document.createElement("canvas");
-
-                canvas.width = MAX_AVATAR_SIZE;
-                canvas.height = MAX_AVATAR_SIZE;
-
-                const context = canvas.getContext("2d");
-
-                if (!context) {
-                    reject(new Error("PROCESSING_FAILED"));
-                    return;
-                }
-
-                context.imageSmoothingEnabled = true;
-                context.imageSmoothingQuality = "high";
-
-                context.drawImage(
-                    image,
-                    sourceX,
-                    sourceY,
-                    sourceSize,
-                    sourceSize,
-                    0,
-                    0,
-                    MAX_AVATAR_SIZE,
-                    MAX_AVATAR_SIZE
-                );
-
-                const result = canvas.toDataURL(
-                    "image/jpeg",
-                    AVATAR_QUALITY
-                );
-
-                if (!result || result.length < 100) {
-                    reject(new Error("PROCESSING_FAILED"));
-                    return;
-                }
-
-                resolve(result);
-            };
-
-            image.onerror = () => {
-                reject(new Error("INVALID_IMAGE"));
-            };
-
-            image.src = reader.result;
-        };
-
-        reader.onerror = () => {
-            reject(new Error("READ_FAILED"));
-        };
-
-        reader.readAsDataURL(file);
-    });
+    );
 }
 
-function canChangeAvatar(profile) {
+function canChangeAvatar(
+    profile
+) {
     if (!profile) {
         return {
             allowed: false,
-            message: "CREATE YOUR PROFILE FIRST"
+            message:
+                "CREATE YOUR PROFILE FIRST"
         };
     }
 
@@ -575,7 +910,8 @@ function canChangeAvatar(profile) {
         };
     }
 
-    const state = getAvatarState(profile);
+    const state =
+        getAvatarState(profile);
 
     if (state.available > 0) {
         return {
@@ -584,7 +920,10 @@ function canChangeAvatar(profile) {
         };
     }
 
-    const remaining = formatRemainingTime(state.nextChangeAt);
+    const remaining =
+        formatRemainingTime(
+            state.nextChangeAt
+        );
 
     return {
         allowed: false,
@@ -594,66 +933,97 @@ function canChangeAvatar(profile) {
     };
 }
 
-function consumeAvatarChange(profile) {
+function consumeAvatarChange(
+    profile
+) {
     if (isDeveloperAccount()) {
         return profile;
     }
 
-    const state = getAvatarState(profile);
+    const state =
+        getAvatarState(profile);
+
     const now = Date.now();
 
-    if (state.available <= 0) {
+    if (
+        state.available <= 0
+    ) {
         return profile;
     }
 
-    const nextUsed = state.used + 1;
+    const nextUsed =
+        state.used + 1;
 
     return {
         ...profile,
-        avatarChangesUsed: nextUsed,
+        avatarChangesUsed:
+            nextUsed,
         avatarNextChangeAt:
-            nextUsed >= INITIAL_AVATAR_CHANGES
-                ? now + AVATAR_COOLDOWN_DAYS * 24 * 60 * 60 * 1000
+            nextUsed >=
+            INITIAL_AVATAR_CHANGES
+                ? now +
+                  AVATAR_COOLDOWN_DAYS *
+                  24 *
+                  60 *
+                  60 *
+                  1000
                 : 0
     };
 }
 
 function persistAvatar(avatar) {
-    const profile = loadProfile();
+    const profile =
+        loadProfile();
 
     if (!profile) {
         showMessage(
             "CREATE YOUR PROFILE FIRST",
             "error"
         );
+
         return false;
     }
 
-    const permission = canChangeAvatar(profile);
+    const permission =
+        canChangeAvatar(
+            profile
+        );
 
     if (!permission.allowed) {
-        showMessage(permission.message, "error");
+        showMessage(
+            permission.message,
+            "error"
+        );
+
         return false;
     }
 
-    const updatedProfile = consumeAvatarChange({
-        ...profile,
-        avatar
-    });
+    const updatedProfile =
+        consumeAvatarChange({
+            ...profile,
+            avatar
+        });
 
-    updatedProfile.updatedAt = new Date().toISOString();
+    updatedProfile.updatedAt =
+        new Date().toISOString();
 
-    if (!saveProfile(updatedProfile)) {
+    if (
+        !saveProfile(
+            updatedProfile
+        )
+    ) {
         showMessage(
             "PHOTO COULD NOT BE SAVED",
             "error"
         );
+
         return false;
     }
 
     updateIdentity(
         updatedProfile.tag,
-        updatedProfile.role || PLAYER_ROLE,
+        updatedProfile.role ||
+            PLAYER_ROLE,
         updatedProfile.playerId,
         updatedProfile.avatar || ""
     );
@@ -663,21 +1033,40 @@ function persistAvatar(avatar) {
     return true;
 }
 
-async function handleAvatarSelection(event) {
-    const file = event.target.files?.[0];
-
-    if (!file || isProcessingAvatar) {
+async function handleAvatarSelection(
+    event
+) {
+    if (!authReady) {
         return;
     }
 
-    const profile = loadProfile();
-    const permission = canChangeAvatar(profile);
+    const file =
+        event.target.files?.[0];
+
+    if (
+        !file ||
+        isProcessingAvatar
+    ) {
+        return;
+    }
+
+    const profile =
+        loadProfile();
+
+    const permission =
+        canChangeAvatar(
+            profile
+        );
 
     if (!permission.allowed) {
-        showMessage(permission.message, "error");
+        showMessage(
+            permission.message,
+            "error"
+        );
 
         if (avatarInput) {
-            avatarInput.value = "";
+            avatarInput.value =
+                "";
         }
 
         return;
@@ -687,9 +1076,16 @@ async function handleAvatarSelection(event) {
     showMessage("");
 
     try {
-        const avatar = await processAvatar(file);
+        const avatar =
+            await processAvatar(
+                file
+            );
 
-        if (!persistAvatar(avatar)) {
+        if (
+            !persistAvatar(
+                avatar
+            )
+        ) {
             return;
         }
 
@@ -699,39 +1095,60 @@ async function handleAvatarSelection(event) {
         );
     } catch (error) {
         const message =
-            error?.message === "INVALID_IMAGE"
+            error?.message ===
+            "INVALID_IMAGE"
                 ? "PLEASE CHOOSE A VALID IMAGE"
                 : "PHOTO COULD NOT BE PROCESSED";
 
-        showMessage(message, "error");
+        showMessage(
+            message,
+            "error"
+        );
     } finally {
         setAvatarProcessing(false);
 
         if (avatarInput) {
-            avatarInput.value = "";
+            avatarInput.value =
+                "";
         }
     }
 }
 
-function openAvatarPicker(force = false) {
+function openAvatarPicker(
+    force = false
+) {
     if (
+        !authReady ||
         isProcessingAvatar ||
         !avatarInput
     ) {
         return;
     }
 
-    const profile = loadProfile();
-    const hasAvatar = Boolean(profile?.avatar);
+    const profile =
+        loadProfile();
 
-    if (hasAvatar && !force) {
+    const hasAvatar =
+        Boolean(profile?.avatar);
+
+    if (
+        hasAvatar &&
+        !force
+    ) {
         return;
     }
 
-    const permission = canChangeAvatar(profile);
+    const permission =
+        canChangeAvatar(
+            profile
+        );
 
     if (!permission.allowed) {
-        showMessage(permission.message, "error");
+        showMessage(
+            permission.message,
+            "error"
+        );
+
         return;
     }
 
@@ -739,11 +1156,15 @@ function openAvatarPicker(force = false) {
 }
 
 function removeAvatar() {
-    if (isProcessingAvatar) {
+    if (
+        !authReady ||
+        isProcessingAvatar
+    ) {
         return;
     }
 
-    const profile = loadProfile();
+    const profile =
+        loadProfile();
 
     if (!profile) {
         return;
@@ -752,20 +1173,27 @@ function removeAvatar() {
     const updatedProfile = {
         ...profile,
         avatar: "",
-        updatedAt: new Date().toISOString()
+        updatedAt:
+            new Date().toISOString()
     };
 
-    if (!saveProfile(updatedProfile)) {
+    if (
+        !saveProfile(
+            updatedProfile
+        )
+    ) {
         showMessage(
             "PHOTO COULD NOT BE REMOVED",
             "error"
         );
+
         return;
     }
 
     updateIdentity(
         updatedProfile.tag,
-        updatedProfile.role || PLAYER_ROLE,
+        updatedProfile.role ||
+            PLAYER_ROLE,
         updatedProfile.playerId,
         ""
     );
@@ -780,10 +1208,13 @@ function removeAvatar() {
 
 function applyDeveloperMode() {
     if (profileForm) {
-        profileForm.classList.add("is-developer");
+        profileForm.classList.add(
+            "is-developer"
+        );
     }
 
-    const profile = loadProfile();
+    const profile =
+        loadProfile();
 
     updateIdentity(
         DEVELOPER_TAG,
@@ -793,26 +1224,39 @@ function applyDeveloperMode() {
     );
 
     if (arcadeTagInput) {
-        arcadeTagInput.value = DEVELOPER_TAG;
-        arcadeTagInput.disabled = true;
+        arcadeTagInput.value =
+            DEVELOPER_TAG;
+
+        arcadeTagInput.disabled =
+            true;
     }
 
     if (formHeading) {
-        formHeading.hidden = true;
+        formHeading.hidden =
+            true;
     }
 
     if (inputWrap) {
-        inputWrap.hidden = true;
+        inputWrap.hidden =
+            true;
     }
 
     if (tagHint) {
-        tagHint.hidden = true;
-        tagHint.textContent = "";
-        tagHint.classList.remove("is-developer");
+        tagHint.hidden =
+            true;
+
+        tagHint.textContent =
+            "";
+
+        tagHint.classList.remove(
+            "is-developer"
+        );
     }
 
     if (profileBackLink) {
-        profileBackLink.href = "../index.html";
+        profileBackLink.href =
+            "../index.html";
+
         profileBackLink.setAttribute(
             "aria-label",
             "Back to Arcade"
@@ -820,11 +1264,13 @@ function applyDeveloperMode() {
     }
 
     if (profileBackLabel) {
-        profileBackLabel.textContent = "ARCADE";
+        profileBackLabel.textContent =
+            "ARCADE";
     }
 
     if (profileTopLabel) {
-        profileTopLabel.textContent = "DEVELOPER PROFILE";
+        profileTopLabel.textContent =
+            "DEVELOPER PROFILE";
     }
 
     if (profileTopState) {
@@ -834,7 +1280,8 @@ function applyDeveloperMode() {
     }
 
     if (profileStatus) {
-        profileStatus.textContent = "DEVELOPER";
+        profileStatus.textContent =
+            "DEVELOPER";
     }
 
     if (profileIdentityText) {
@@ -854,39 +1301,52 @@ function applyDeveloperMode() {
     showMessage("");
 
     if (saveButtonLabel) {
-        saveButtonLabel.textContent = "ENTER ARCADE";
+        saveButtonLabel.textContent =
+            "ENTER ARCADE";
     }
 
     setSavingState(false);
 }
 
-function applyPlayerMode(profile) {
+function applyPlayerMode(
+    profile
+) {
     if (profileForm) {
-        profileForm.classList.remove("is-developer");
+        profileForm.classList.remove(
+            "is-developer"
+        );
     }
 
     if (formHeading) {
-        formHeading.hidden = false;
+        formHeading.hidden =
+            false;
     }
 
     if (inputWrap) {
-        inputWrap.hidden = false;
+        inputWrap.hidden =
+            false;
     }
 
     if (arcadeTagInput) {
-        arcadeTagInput.disabled = false;
-        arcadeTagInput.value = profile?.tag || "";
+        arcadeTagInput.disabled =
+            false;
+
+        arcadeTagInput.value =
+            profile?.tag || "";
     }
 
-    const hasProfile = Boolean(
-        profile?.tag &&
-        typeof profile.tag === "string"
-    );
+    const hasProfile =
+        Boolean(
+            profile?.tag &&
+            typeof profile.tag ===
+                "string"
+        );
 
     if (profileBackLink) {
-        profileBackLink.href = hasProfile
-            ? "../index.html"
-            : "../auth/login.html";
+        profileBackLink.href =
+            hasProfile
+                ? "../index.html"
+                : "../auth/login.html";
 
         profileBackLink.setAttribute(
             "aria-label",
@@ -904,7 +1364,8 @@ function applyPlayerMode(profile) {
     }
 
     if (profileTopLabel) {
-        profileTopLabel.textContent = "ARCADE PROFILE";
+        profileTopLabel.textContent =
+            "ARCADE PROFILE";
     }
 
     if (profileTopState) {
@@ -915,7 +1376,8 @@ function applyPlayerMode(profile) {
     }
 
     if (profileStatus) {
-        profileStatus.textContent = "PROFILE";
+        profileStatus.textContent =
+            "PROFILE";
     }
 
     if (profileIdentityText) {
@@ -933,12 +1395,17 @@ function applyPlayerMode(profile) {
     }
 
     if (tagHint) {
-        tagHint.hidden = false;
+        tagHint.hidden =
+            false;
+
         tagHint.innerHTML =
             "<strong>3–16 CHARACTERS</strong>" +
             "<span>A–Z · a–z · 0–9 · _</span>" +
             "<span>No spaces or special characters</span>";
-        tagHint.classList.remove("is-developer");
+
+        tagHint.classList.remove(
+            "is-developer"
+        );
     }
 
     if (saveButtonLabel) {
@@ -951,7 +1418,8 @@ function applyPlayerMode(profile) {
     updateIdentity(
         profile?.tag || "",
         PLAYER_ROLE,
-        profile?.playerId || "ZA-000000",
+        profile?.playerId ||
+            "ZA-000000",
         profile?.avatar || ""
     );
 
@@ -968,7 +1436,11 @@ function validateTag(tag) {
         return "ARCADE TAG MUST BE 16 CHARACTERS OR LESS";
     }
 
-    if (!/^[A-Za-z0-9_]+$/.test(tag)) {
+    if (
+        !/^[A-Za-z0-9_]+$/.test(
+            tag
+        )
+    ) {
         return "USE ONLY LETTERS, NUMBERS, AND UNDERSCORES";
     }
 
@@ -982,33 +1454,53 @@ function redirectToArcade() {
 
     isLeavingPage = true;
 
-    document.body.classList.add("is-leaving");
-    profileCard?.classList.add("is-leaving");
+    document.body.classList.add(
+        "is-leaving"
+    );
+
+    profileCard?.classList.add(
+        "is-leaving"
+    );
 
     window.setTimeout(() => {
-        window.location.replace("../index.html");
+        window.location.replace(
+            "../index.html"
+        );
     }, 420);
 }
 
 function handleDeveloperSubmit() {
-    const existingProfile = loadProfile();
-    const now = new Date().toISOString();
+    const existingProfile =
+        loadProfile();
+
+    const now =
+        new Date().toISOString();
 
     const profile = {
         tag: DEVELOPER_TAG,
         role: DEVELOPER_ROLE,
-        playerId: DEVELOPER_PLAYER_ID,
-        avatar: existingProfile?.avatar || "",
-        createdAt: existingProfile?.createdAt || now,
+        playerId:
+            DEVELOPER_PLAYER_ID,
+        avatar:
+            existingProfile?.avatar ||
+            "",
+        createdAt:
+            existingProfile?.createdAt ||
+            now,
         updatedAt: now
     };
 
     if (!saveProfile(profile)) {
-        setSavingState(false, "ENTER ARCADE");
+        setSavingState(
+            false,
+            "ENTER ARCADE"
+        );
+
         showMessage(
             "ACCOUNT SESSION NOT FOUND",
             "error"
         );
+
         return;
     }
 
@@ -1041,7 +1533,8 @@ function handleDeveloperSubmit() {
 
 function handlePlayerSubmit() {
     const tag =
-        (arcadeTagInput?.value || "").trim();
+        (arcadeTagInput?.value || "")
+            .trim();
 
     const validationMessage =
         validateTag(tag);
@@ -1053,16 +1546,20 @@ function handlePlayerSubmit() {
         );
 
         arcadeTagInput?.focus();
+
         return;
     }
 
-    const existingProfile = loadProfile();
+    const existingProfile =
+        loadProfile();
 
     const currentTag =
-        existingProfile?.tag || "";
+        existingProfile?.tag ||
+        "";
 
     if (
-        tag.toLowerCase() !== currentTag.toLowerCase() &&
+        tag.toLowerCase() !==
+            currentTag.toLowerCase() &&
         isTagTaken(tag)
     ) {
         showMessage(
@@ -1071,10 +1568,12 @@ function handlePlayerSubmit() {
         );
 
         arcadeTagInput?.focus();
+
         return;
     }
 
-    const now = new Date().toISOString();
+    const now =
+        new Date().toISOString();
 
     const playerId =
         existingProfile?.playerId ||
@@ -1084,13 +1583,19 @@ function handlePlayerSubmit() {
         tag,
         role: PLAYER_ROLE,
         playerId,
-        avatar: existingProfile?.avatar || "",
+        avatar:
+            existingProfile?.avatar ||
+            "",
         avatarChangesUsed:
-            Number.isFinite(existingProfile?.avatarChangesUsed)
+            Number.isFinite(
+                existingProfile?.avatarChangesUsed
+            )
                 ? existingProfile.avatarChangesUsed
                 : 0,
         avatarNextChangeAt:
-            Number.isFinite(existingProfile?.avatarNextChangeAt)
+            Number.isFinite(
+                existingProfile?.avatarNextChangeAt
+            )
                 ? existingProfile.avatarNextChangeAt
                 : 0,
         createdAt:
@@ -1104,11 +1609,14 @@ function handlePlayerSubmit() {
             "ACCOUNT SESSION NOT FOUND",
             "error"
         );
+
         return;
     }
 
     const isUpdate =
-        Boolean(existingProfile?.tag);
+        Boolean(
+            existingProfile?.tag
+        );
 
     updateIdentity(
         tag,
@@ -1117,7 +1625,10 @@ function handlePlayerSubmit() {
         profile.avatar
     );
 
-    setProfileTopState("PLAYER PROFILE");
+    setProfileTopState(
+        "PLAYER PROFILE"
+    );
+
     setSuccessButtonState();
 
     showMessage(
@@ -1136,7 +1647,8 @@ function handlePlayerSubmit() {
 
     window.setTimeout(() => {
         if (saveButtonLabel) {
-            saveButtonLabel.textContent = "ENTERING ARCADE";
+            saveButtonLabel.textContent =
+                "ENTERING ARCADE";
         }
     }, 220);
 
@@ -1147,6 +1659,7 @@ function handleSubmit(event) {
     event.preventDefault();
 
     if (
+        !authReady ||
         isSaving ||
         isProcessingAvatar
     ) {
@@ -1157,42 +1670,53 @@ function handleSubmit(event) {
 
     if (isDeveloperAccount()) {
         handleDeveloperSubmit();
+
         return;
     }
 
     handlePlayerSubmit();
 }
 
-function initializeProfile() {
+async function initializeProfile() {
+    const session =
+        await (
+            window.zeroArcadeSessionReady ||
+            Promise.resolve(null)
+        );
+
     if (
-        sessionStorage.getItem(ACCESS_KEY) !==
-        "granted"
+        !session ||
+        !session.account?.email
     ) {
         window.location.replace(
             "../auth/login.html"
         );
+
         return;
     }
 
-    if (!getAccountEmail()) {
-        window.location.replace(
-            "../auth/login.html"
-        );
-        return;
-    }
+    currentSession =
+        session;
 
-    const profile = loadProfile();
+    authReady = true;
+
+    const profile =
+        loadProfile();
 
     if (isDeveloperAccount()) {
         applyDeveloperMode();
     } else {
-        applyPlayerMode(profile);
+        applyPlayerMode(
+            profile
+        );
     }
 
     if (profileCard) {
         requestAnimationFrame(() => {
             requestAnimationFrame(() => {
-                profileCard.classList.add("is-ready");
+                profileCard.classList.add(
+                    "is-ready"
+                );
             });
         });
     }
@@ -1201,14 +1725,16 @@ function initializeProfile() {
 if (profileAvatar) {
     profileAvatar.addEventListener(
         "click",
-        () => openAvatarPicker(false)
+        () =>
+            openAvatarPicker(false)
     );
 }
 
 if (changeAvatarButton) {
     changeAvatarButton.addEventListener(
         "click",
-        () => openAvatarPicker(true)
+        () =>
+            openAvatarPicker(true)
     );
 }
 
@@ -1231,6 +1757,7 @@ if (arcadeTagInput) {
         "input",
         () => {
             if (
+                !authReady ||
                 isDeveloperAccount() ||
                 isSaving
             ) {
@@ -1240,14 +1767,16 @@ if (arcadeTagInput) {
             const currentValue =
                 arcadeTagInput.value;
 
-            const profile = loadProfile();
+            const profile =
+                loadProfile();
 
             updateIdentity(
                 currentValue,
                 PLAYER_ROLE,
                 profile?.playerId ||
                     "ZA-000000",
-                profile?.avatar || ""
+                profile?.avatar ||
+                    ""
             );
 
             showMessage("");
@@ -1258,7 +1787,7 @@ if (arcadeTagInput) {
 if (profileBackLink) {
     profileBackLink.addEventListener(
         "click",
-        event => {
+        (event) => {
             if (
                 isLeavingPage ||
                 event.defaultPrevented
@@ -1266,23 +1795,33 @@ if (profileBackLink) {
                 return;
             }
 
-            const target = profileBackLink.href;
+            const target =
+                profileBackLink.href;
 
             if (
                 !target ||
-                target === window.location.href
+                target ===
+                    window.location.href
             ) {
                 return;
             }
 
             event.preventDefault();
 
-            isLeavingPage = true;
-            document.body.classList.add("is-leaving");
-            profileCard?.classList.add("is-leaving");
+            isLeavingPage =
+                true;
+
+            document.body.classList.add(
+                "is-leaving"
+            );
+
+            profileCard?.classList.add(
+                "is-leaving"
+            );
 
             window.setTimeout(() => {
-                window.location.href = target;
+                window.location.href =
+                    target;
             }, 320);
         }
     );
