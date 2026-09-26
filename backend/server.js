@@ -1,6 +1,9 @@
 const path = require("node:path");
+
 const express = require("express");
+
 const { db } = require("./database");
+
 const {
     createToken,
     hashToken,
@@ -10,22 +13,61 @@ const {
 const app = express();
 
 const PORT = 3000;
+
 const ROOT_DIR = path.join(__dirname, "..");
 
 const SESSION_COOKIE = "zero_arcade_session";
+
 const DEVICE_COOKIE = "zero_arcade_device";
 
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
 const SESSION_TTL_SECONDS = SESSION_TTL_MS / 1000;
+
 const DEVICE_TTL_SECONDS = 365 * 24 * 60 * 60;
 
 const IS_PRODUCTION = process.env.NODE_ENV === "production";
 
 app.disable("x-powered-by");
 
+app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("Referrer-Policy", "no-referrer");
+    res.setHeader(
+        "Permissions-Policy",
+        "camera=(), microphone=(), geolocation=()"
+    );
+    res.setHeader(
+        "Content-Security-Policy",
+        "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob:; font-src 'self'; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    );
+    next();
+});
+
 app.use(express.json({
     limit: "32kb"
 }));
+
+app.use((err, req, res, next) => {
+    if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+        res.status(400).json({
+            ok: false,
+            error: "INVALID_JSON"
+        });
+        return;
+    }
+
+    if (err?.type === "entity.too.large" || err?.status === 413) {
+        res.status(413).json({
+            ok: false,
+            error: "PAYLOAD_TOO_LARGE"
+        });
+        return;
+    }
+
+    next(err);
+});
 
 function parseCookies(header = "") {
     const cookies = {};
@@ -38,6 +80,7 @@ function parseCookies(header = "") {
         }
 
         const name = part.slice(0, separator).trim();
+
         const value = part.slice(separator + 1).trim();
 
         if (!name) {
@@ -145,6 +188,7 @@ function clearSessionCookie(res) {
 
 function getAuthenticatedSession(req) {
     const cookies = parseCookies(req.headers.cookie);
+
     const sessionToken = cookies[SESSION_COOKIE];
 
     if (
@@ -227,6 +271,7 @@ function requireApiAuth(req, res, next) {
     }
 
     req.auth = session;
+
     next();
 }
 
@@ -332,6 +377,7 @@ app.post("/api/auth/login", (req, res) => {
     }
 
     const cookies = parseCookies(req.headers.cookie);
+
     let deviceToken = cookies[DEVICE_COOKIE] || "";
 
     if (
@@ -413,7 +459,9 @@ app.post("/api/auth/login", (req, res) => {
     }
 
     const now = new Date();
+
     const createdAt = now.toISOString();
+
     const expiresAt = new Date(
         now.getTime() + SESSION_TTL_MS
     ).toISOString();
@@ -425,6 +473,7 @@ app.post("/api/auth/login", (req, res) => {
     `).run(createdAt);
 
     const sessionToken = createToken(32);
+
     const sessionHash = hashToken(sessionToken);
 
     db.prepare(`
@@ -464,6 +513,7 @@ app.post(
     requireApiAuth,
     (req, res) => {
         const cookies = parseCookies(req.headers.cookie);
+
         const sessionToken = cookies[SESSION_COOKIE];
 
         if (sessionToken) {
@@ -511,6 +561,7 @@ app.use((req, res, next) => {
     );
 
     req.auth = session;
+
     next();
 });
 
@@ -540,4 +591,5 @@ function shutdown() {
 }
 
 process.on("SIGINT", shutdown);
+
 process.on("SIGTERM", shutdown);

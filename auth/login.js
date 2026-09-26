@@ -15,17 +15,21 @@ function getCurrentProfile(email) {
     }
 
     try {
-        const key = getProfileKey(email);
-        return JSON.parse(
-            localStorage.getItem(key) || "null"
+        const profile = JSON.parse(
+            localStorage.getItem(
+                getProfileKey(email)
+            ) || "null"
         );
+
+        return profile;
     } catch {
         return null;
     }
 }
 
 function hasProfile(email) {
-    const profile = getCurrentProfile(email);
+    const profile =
+        getCurrentProfile(email);
 
     return Boolean(
         profile &&
@@ -40,8 +44,11 @@ function setMessage(message, type = "") {
         return;
     }
 
-    loginMessage.textContent = message;
-    loginMessage.className = "login-message";
+    loginMessage.textContent =
+        message;
+
+    loginMessage.className =
+        "login-message";
 
     if (type) {
         loginMessage.classList.add(
@@ -59,10 +66,13 @@ function togglePassword() {
     }
 
     const shouldShow =
-        passwordInput.type === "password";
+        passwordInput.type ===
+        "password";
 
     passwordInput.type =
-        shouldShow ? "text" : "password";
+        shouldShow
+            ? "text"
+            : "password";
 
     passwordToggle.setAttribute(
         "aria-label",
@@ -92,6 +102,7 @@ function triggerLoginError(message) {
 
     if (loginButton) {
         loginButton.disabled = false;
+
         loginButton.classList.remove(
             "is-loading",
             "is-granted"
@@ -204,7 +215,9 @@ function createUnlockFrame() {
     }
 
     const frame =
-        document.createElement("div");
+        document.createElement(
+            "div"
+        );
 
     frame.className =
         "unlock-frame";
@@ -378,8 +391,9 @@ async function handleLogin(event) {
     setMessage("");
 
     const email =
-        emailInput?.value.trim().toLowerCase() ||
-        "";
+        emailInput?.value
+            .trim()
+            .toLowerCase() || "";
 
     const password =
         passwordInput?.value || "";
@@ -388,6 +402,7 @@ async function handleLogin(event) {
         triggerLoginError(
             "ENTER YOUR LOGIN DETAILS"
         );
+
         return;
     }
 
@@ -403,7 +418,7 @@ async function handleLogin(event) {
                 headers: {
                     "Content-Type":
                         "application/json",
-                    "Accept":
+                    Accept:
                         "application/json"
                 },
                 credentials:
@@ -419,17 +434,20 @@ async function handleLogin(event) {
         triggerLoginError(
             "AUTHENTICATION SERVER UNAVAILABLE"
         );
+
         return;
     }
 
     let result = null;
 
     try {
-        result = await response.json();
+        result =
+            await response.json();
     } catch {
         triggerLoginError(
             "AUTHENTICATION SERVER ERROR"
         );
+
         return;
     }
 
@@ -452,48 +470,30 @@ async function handleLogin(event) {
         };
 
         triggerLoginError(
-            errorMessages[result?.error] ||
+            errorMessages[
+                result?.error
+            ] ||
             "AUTHENTICATION FAILED"
         );
 
         return;
     }
 
-    const accountEmail =
-        result.account.email;
-
-    const accountRole =
-        result.account.role;
-
     window.zeroArcadeSession = {
         authenticated: true,
-        account: result.account,
+        account:
+            result.account,
         expiresAt:
             result.expiresAt
     };
 
-    sessionStorage.setItem(
-        ACCESS_KEY,
-        "granted"
-    );
-
-    sessionStorage.setItem(
-        ACCOUNT_KEY,
-        accountEmail
-    );
-
-    sessionStorage.setItem(
-        ROLE_KEY,
-        accountRole
-    );
-
     showGrantedState(
-        accountRole
+        result.account.role
     );
 
     window.setTimeout(() => {
         startUnlockSequence(
-            accountEmail
+            result.account.email
         );
     }, 1250);
 }
