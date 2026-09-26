@@ -280,6 +280,20 @@ function handleCardClick(card) {
     }
 }
 
+function submitScore(finalScore) {
+    fetch("/api/scores", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+            gameKey: "memory",
+            score: finalScore
+        })
+    }).catch(() => {});
+}
+
 function finishGame() {
     updateElapsedTime();
     stopTimer();
@@ -298,6 +312,7 @@ function finishGame() {
     setCardsEnabled(false);
     gameBoard.classList.add("completed");
     gameHint.textContent = "ALL PAIRS MATCHED";
+    submitScore(moves);
 
     if (isNewBest) {
         localStorage.setItem(

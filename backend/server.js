@@ -539,7 +539,7 @@ app.post(
     }
 );
 
-const SCORE_GAMES = new Set(["snake", "flappy"]);
+const SCORE_GAMES = new Set(["snake", "flappy", "memory"]);
 const MAX_SCORE = 1000000;
 
 app.post("/api/scores", requireApiAuth, (req, res) => {
