@@ -539,6 +539,57 @@ app.post(
     }
 );
 
+const SCORE_GAMES = new Set(["snake", "flappy"]);
+const MAX_SCORE = 1000000;
+
+app.post("/api/scores", requireApiAuth, (req, res) => {
+    const gameKey = String(req.body?.gameKey || "").trim().toLowerCase();
+    const score = req.body?.score;
+
+    if (!SCORE_GAMES.has(gameKey)) {
+        res.status(400).json({
+            ok: false,
+            error: "INVALID_GAME"
+        });
+        return;
+    }
+
+    if (
+        typeof score !== "number" ||
+        !Number.isSafeInteger(score) ||
+        score < 0 ||
+        score > MAX_SCORE
+    ) {
+        res.status(400).json({
+            ok: false,
+            error: "INVALID_SCORE"
+        });
+        return;
+    }
+
+    const achievedAt = new Date().toISOString();
+    const accountId = req.auth.account.id;
+
+    const result = db.prepare(`
+        INSERT INTO game_scores (
+            account_id,
+            game_key,
+            score,
+            achieved_at
+        )
+        VALUES (?, ?, ?, ?)
+    `).run(accountId, gameKey, score, achievedAt);
+
+    res.status(201).json({
+        ok: true,
+        score: {
+            id: Number(result.lastInsertRowid),
+            gameKey,
+            score,
+            achievedAt
+        }
+    });
+});
 app.use((req, res, next) => {
     if (!isProtectedPage(req.path)) {
         next();

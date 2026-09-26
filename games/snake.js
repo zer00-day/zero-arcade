@@ -471,6 +471,19 @@ function updateGame() {
     scheduleNextStep(GAME_STEP);
 }
 
+function submitScore(finalScore) {
+    fetch("/api/scores", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+            gameKey: "snake",
+            score: finalScore
+        })
+    }).catch(() => {});
+}
 function endGame(completed = false) {
     clearGameTimer();
 
@@ -484,6 +497,7 @@ function endGame(completed = false) {
     restartButton.textContent = "NEW GAME";
 
     renderSnake(1);
+    submitScore(score);
 
     if (completed) {
         const isNewBest = score > previousBestScore;

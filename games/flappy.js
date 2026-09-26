@@ -417,6 +417,19 @@ function startGame() {
     );
 }
 
+function submitScore(finalScore) {
+    fetch("/api/scores", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json"
+        },
+        credentials: "same-origin",
+        body: JSON.stringify({
+            gameKey: "flappy",
+            score: finalScore
+        })
+    }).catch(() => {});
+}
 function endGame() {
     if (gameState !== "playing") {
         return;
@@ -461,6 +474,7 @@ function endGame() {
         );
     }
 
+    submitScore(score);
     cancelAnimationFrame(animationFrame);
     animationFrame = null;
     draw();
